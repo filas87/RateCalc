@@ -1,0 +1,2996 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Kronos Express RateCalc v2.1.2</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --stroke:rgba(255,255,255,.12);
+      --stroke2:rgba(255,255,255,.2);
+      --text:rgba(255,255,255,.93);
+      --muted:rgba(255,255,255,.68);
+      --muted2:rgba(255,255,255,.5);
+      --green:#2ee59d;
+      --red:#ff6b6b;
+      --blue:#668cff;
+      --yellow:#ffcc66;
+      --shadow:0 18px 60px rgba(0,0,0,.42);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      min-height:100vh;
+      font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(900px 500px at 10% 0%, rgba(102,140,255,.28), transparent 60%),
+        radial-gradient(700px 400px at 100% 10%, rgba(46,229,157,.18), transparent 55%),
+        radial-gradient(900px 600px at 40% 100%, rgba(255,204,102,.12), transparent 60%),
+        linear-gradient(180deg,#070a14 0%,#0b1020 55%,#090d1a 100%);
+      padding:18px 12px 28px;
+    }
+    .wrap{max-width:1460px;margin:0 auto}
+    .topbar{
+      display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;
+      margin-bottom:16px;padding:8px 4px 14px;
+    }
+    .brand h1{margin:0;font-size:22px;letter-spacing:.2px}
+    .brand .sub{margin-top:6px;color:var(--muted);font-size:13px;line-height:1.45}
+    .brand .version{
+      display:inline-flex;align-items:center;gap:8px;margin-top:10px;
+      border:1px solid var(--stroke);
+      background:rgba(255,255,255,.06);
+      color:rgba(255,255,255,.88);
+      padding:7px 12px;border-radius:999px;font-size:12px;font-weight:800
+    }
+    .topActions{display:flex;gap:10px;flex-wrap:wrap}
+    .btn{
+      border:1px solid var(--stroke);
+      background:rgba(255,255,255,.06);
+      color:rgba(255,255,255,.9);
+      border-radius:14px;
+      padding:11px 14px;
+      cursor:pointer;
+      font-weight:900;
+      letter-spacing:.2px;
+      transition:.18s ease;
+      display:inline-flex;align-items:center;gap:8px;
+    }
+    .btn:hover{transform:translateY(-1px);border-color:var(--stroke2)}
+    .btn.primary{
+      border-color:rgba(46,229,157,.38);
+      background:linear-gradient(180deg,rgba(46,229,157,.28),rgba(46,229,157,.10));
+      box-shadow:0 12px 28px rgba(46,229,157,.14);
+    }
+    .btn.blue{
+      border-color:rgba(102,140,255,.45);
+      background:linear-gradient(180deg,rgba(102,140,255,.25),rgba(102,140,255,.10));
+    }
+    .btn.danger{
+      border-color:rgba(255,107,107,.42);
+      background:linear-gradient(180deg,rgba(255,107,107,.24),rgba(255,107,107,.1));
+    }
+    .tabBtn.active{
+      background:linear-gradient(180deg,rgba(102,140,255,.35),rgba(102,140,255,.12));
+      border-color:rgba(102,140,255,.55);
+      box-shadow:0 12px 30px rgba(102,140,255,.14);
+    }
+
+    .tabPane{display:none}
+    .tabPane.active{display:block}
+
+    .gridMain{display:grid;grid-template-columns:1.05fr .95fr;gap:14px}
+    @media (max-width:1120px){ .gridMain{grid-template-columns:1fr} }
+
+    .card{
+      border:1px solid var(--stroke);
+      border-radius:var(--radius);
+      background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.045));
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(14px);
+      overflow:hidden;
+    }
+    .cardHeader{
+      padding:14px 16px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      background:rgba(0,0,0,.14);
+      display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;
+    }
+    .cardHeader h2{margin:0;font-size:14px;letter-spacing:.2px}
+    .content{padding:16px}
+    .sub{font-size:12px;color:var(--muted)}
+    .muted{color:var(--muted)}
+    .hidden{display:none !important}
+    .spacer12{height:12px}
+
+    .row2,.row3,.row4{
+      display:grid;gap:10px;
+    }
+    .row2{grid-template-columns:1fr 1fr}
+    .row3{grid-template-columns:1fr 1fr 1fr}
+    .row4{grid-template-columns:1fr 1fr 1fr 1fr}
+    @media (max-width:860px){ .row4{grid-template-columns:1fr 1fr} }
+    @media (max-width:640px){ .row2,.row3,.row4{grid-template-columns:1fr} }
+
+    label{display:block;font-size:12px;color:var(--muted);margin:2px 0 6px}
+    .field{
+      border:1px solid var(--stroke);
+      background:rgba(255,255,255,.06);
+      border-radius:14px;
+      padding:10px 12px;
+      display:flex;align-items:center;gap:10px;
+      transition:.18s ease;
+    }
+    .field:focus-within{
+      border-color:rgba(102,140,255,.65);
+      box-shadow:0 0 0 4px rgba(102,140,255,.11);
+    }
+    .icon{
+      width:28px;height:28px;flex:0 0 28px;
+      border-radius:10px;display:grid;place-items:center;
+      border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);
+      color:rgba(255,255,255,.75);font-size:14px;
+    }
+    input,select,textarea{
+      width:100%;border:0;outline:none;background:transparent;color:var(--text);
+      font-size:14px;font-family:inherit;
+    }
+    textarea{min-height:80px;resize:vertical}
+    input::placeholder,textarea::placeholder{color:rgba(255,255,255,.35)}
+    .suffix{font-size:12px;color:rgba(255,255,255,.45);white-space:nowrap}
+
+    .seg,.seg3{
+      display:grid;gap:10px;
+    }
+    .seg{grid-template-columns:1fr 1fr}
+    .seg3{grid-template-columns:1fr 1fr 1fr}
+    .seg4{display:grid;gap:10px;grid-template-columns:1fr 1fr}
+    @media (max-width:760px){ .seg,.seg3,.seg4{grid-template-columns:1fr} }
+    .seg button,.seg3 button{
+      width:100%;
+      border:1px solid var(--stroke);
+      background:rgba(255,255,255,.06);
+      color:rgba(255,255,255,.88);
+      padding:11px 12px;
+      border-radius:14px;
+      cursor:pointer;
+      font-weight:900;
+      transition:.18s ease;
+    }
+    .seg button.active,.seg3 button.active{
+      background:linear-gradient(180deg,rgba(102,140,255,.35),rgba(102,140,255,.12));
+      border-color:rgba(102,140,255,.55);
+      box-shadow:0 10px 24px rgba(102,140,255,.14);
+    }
+
+    .box{
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:16px;
+      background:rgba(255,255,255,.04);
+      padding:12px;
+    }
+
+    .kpiGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media (max-width:620px){ .kpiGrid{grid-template-columns:1fr} }
+    .kpi{
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:16px;
+      background:rgba(255,255,255,.05);
+      padding:12px;
+    }
+    .kpi .t{font-size:12px;color:var(--muted);margin-bottom:6px}
+    .kpi .v{font-size:20px;font-weight:980;letter-spacing:.2px}
+    .kpi .s{font-size:12px;color:var(--muted2);margin-top:6px;line-height:1.35}
+
+    .big{
+      margin-top:12px;border:1px solid rgba(255,255,255,.12);border-radius:18px;
+      padding:14px;background:linear-gradient(180deg,rgba(102,140,255,.18),rgba(255,255,255,.03));
+    }
+    .big .t{font-size:12px;color:var(--muted)}
+    .big .v{font-size:28px;font-weight:990;margin-top:8px}
+    .big .s{font-size:12px;color:var(--muted2);margin-top:8px;line-height:1.35}
+
+    .tableWrap{overflow:auto}
+    table{width:100%;border-collapse:collapse;min-width:900px;font-size:13px}
+    th,td{
+      padding:9px 6px;text-align:left;border-bottom:1px solid rgba(255,255,255,.08);vertical-align:top;
+    }
+    th{
+      color:var(--muted);font-size:12px;font-weight:980;position:sticky;top:0;
+      background:rgba(10,14,28,.92);backdrop-filter:blur(10px);
+    }
+    tr:last-child td{border-bottom:0}
+    .right{text-align:right}
+    .mono{
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+    }
+
+    .pill{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:4px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.06);color:rgba(255,255,255,.85);font-size:12px;white-space:nowrap;
+    }
+    .pill.ok{border-color:rgba(46,229,157,.35)}
+    .pill.warn{border-color:rgba(255,204,102,.35)}
+    .pill.bad{border-color:rgba(255,107,107,.35)}
+    .pill.blue{border-color:rgba(102,140,255,.35)}
+
+    .miniActions{display:flex;gap:8px;flex-wrap:wrap}
+    .miniBtn{
+      border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:rgba(255,255,255,.88);
+      padding:6px 10px;border-radius:12px;font-size:12px;font-weight:980;cursor:pointer;transition:.15s ease;
+      white-space:nowrap;
+    }
+    .miniBtn:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.22)}
+    .miniBtn.primary{border-color:rgba(46,229,157,.35)}
+    .miniBtn.danger{border-color:rgba(255,107,107,.35)}
+    .miniBtn.blue{border-color:rgba(102,140,255,.35)}
+
+    .toast{
+      display:none;margin-top:10px;padding:10px 12px;border-radius:14px;
+      border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);
+      color:rgba(255,255,255,.85);font-size:13px;line-height:1.35;
+    }
+    .toast.ok{border-color:rgba(46,229,157,.35)}
+    .toast.bad{border-color:rgba(255,107,107,.35)}
+    .toast.warn{border-color:rgba(255,204,102,.35)}
+
+    details{
+      border:1px solid rgba(255,255,255,.10);border-radius:16px;background:rgba(255,255,255,.04);
+      overflow:hidden;margin-top:12px;
+    }
+    summary{
+      padding:12px 14px;cursor:pointer;list-style:none;font-weight:980;font-size:13px;color:rgba(255,255,255,.88);
+      display:flex;justify-content:space-between;align-items:center;gap:10px;
+    }
+    summary::-webkit-details-marker{display:none}
+
+    .itemTable input{
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:10px;
+      padding:8px 10px;
+    }
+    .itemTable td{padding:8px 6px}
+    .adminRatesWrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:start}
+    .adminRatesWrap > .box{min-width:0;padding:10px}
+    .adminRatesWrap .tableWrap{overflow-x:auto}
+    .adminRatesWrap table{min-width:300px !important;table-layout:fixed}
+    .adminRatesWrap th,.adminRatesWrap td{padding:7px 4px;font-size:12px}
+    .adminRatesWrap .compactRatesTable{min-width:240px !important;width:100%;table-layout:fixed}
+    .adminRatesWrap .compactRatesTable th:first-child,
+    .adminRatesWrap .compactRatesTable td:first-child{width:96px;padding-right:6px;white-space:nowrap}
+    .adminRatesWrap .compactRatesTable th:last-child,
+    .adminRatesWrap .compactRatesTable td:last-child{width:108px}
+    .adminRatesWrap .compactRatesTable input{
+      min-width:0;width:96px;
+      padding:7px 9px;
+      text-align:right;
+      font-size:12px;
+    }
+    .adminRatesWrap .row3{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,0.9fr);gap:8px}
+    .adminRatesWrap label{font-size:11px}
+    .adminRatesWrap .field{padding:8px 9px;gap:8px}
+    .adminRatesWrap .icon{width:24px;height:24px;flex:0 0 24px;font-size:12px}
+    
+    .adminRatesWrap .box table:not(.compactRatesTable){table-layout:fixed}
+    .adminRatesWrap .box table:not(.compactRatesTable) th:first-child,
+    .adminRatesWrap .box table:not(.compactRatesTable) td:first-child{width:96px;white-space:nowrap}
+    .adminRatesWrap .box table:not(.compactRatesTable) th:last-child,
+    .adminRatesWrap .box table:not(.compactRatesTable) td:last-child{width:110px}
+
+    @media (max-width:940px){ .adminRatesWrap{grid-template-columns:1fr} }
+
+    .modalOverlay{
+      position:fixed;inset:0;z-index:9999;
+      background:rgba(5,8,18,.78);
+      backdrop-filter:blur(8px);
+      display:none;align-items:center;justify-content:center;
+      padding:18px;
+    }
+    .modalOverlay.show{display:flex}
+    .modalCard{
+      width:min(1280px,100%);max-height:92vh;overflow:auto;
+      border:1px solid var(--stroke2);
+      border-radius:22px;
+      background:linear-gradient(180deg,rgba(20,28,52,.96),rgba(9,13,26,.98));
+      box-shadow:0 24px 80px rgba(0,0,0,.5);
+    }
+    .modalHeader{
+      position:sticky;top:0;z-index:2;
+      display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+      padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.08);
+      background:rgba(8,12,24,.94);backdrop-filter:blur(10px);
+    }
+    .modalHeader h2{margin:0;font-size:18px}
+    .modalBody{padding:18px}
+    .modalClose{min-width:180px;justify-content:center}
+    @media (max-width:760px){
+      .modalOverlay{padding:10px}
+      .modalHeader{flex-direction:column}
+      .modalClose{width:100%;min-width:0}
+      .modalBody{padding:14px}
+    }
+
+    /* rate tables: λίγο πιο ανοιχτές ώστε να γεμίζουν σωστά το box */
+    .ratesTightTable{
+      width:100% !important;
+      min-width:0 !important;
+      table-layout:fixed !important;
+      margin:0;
+      display:table;
+    }
+    .ratesTightTable th,
+    .ratesTightTable td{
+      padding:8px 10px;
+    }
+    .ratesTightTable th:first-child,
+    .ratesTightTable td:first-child{
+      width:48%;
+      white-space:nowrap;
+      padding-right:10px;
+    }
+    .ratesTightTable th:last-child,
+    .ratesTightTable td:last-child{
+      width:52%;
+      text-align:right;
+      white-space:nowrap;
+      padding-left:10px;
+    }
+    .adminRatesWrap .tableWrap{overflow-x:auto}
+    .adminRatesWrap .ratesTightTable{
+      min-width:0 !important;
+    }
+    .adminRatesWrap .compactRatesTable{
+      width:100% !important;
+      min-width:0 !important;
+      display:table;
+      table-layout:fixed !important;
+    }
+    .adminRatesWrap .compactRatesTable th:first-child,
+    .adminRatesWrap .compactRatesTable td:first-child{
+      width:46%;
+      padding-right:8px;
+      white-space:nowrap;
+    }
+    .adminRatesWrap .compactRatesTable th:last-child,
+    .adminRatesWrap .compactRatesTable td:last-child{
+      width:54%;
+      padding-left:8px;
+      white-space:nowrap;
+    }
+    .adminRatesWrap .compactRatesTable input{
+      width:100%;
+      min-width:0;
+      max-width:none;
+      padding:7px 8px;
+      text-align:right;
+      font-size:12px;
+    }
+
+  
+    
+    /* Δημιουργία • Τιμές συμφωνίας: ορατά κουτάκια, χωρίς βελάκια, κοντά στα κιλά */
+    #customCatalogModal .compactRatesTable{
+      table-layout: auto !important;
+      width: 100% !important;
+      min-width: 0 !important;
+    }
+    #customCatalogModal .compactRatesTable th:first-child,
+    #customCatalogModal .compactRatesTable td:first-child{
+      width: 42% !important;
+      white-space: nowrap;
+    }
+    #customCatalogModal .compactRatesTable th:last-child,
+    #customCatalogModal .compactRatesTable td:last-child{
+      width: 58% !important;
+      text-align: left !important;
+    }
+    #customCatalogModal .compactRatesTable td.right{
+      text-align: left !important;
+    }
+    #customCatalogModal .compactRatesTable input[type="number"]{
+      width: 110px !important;
+      min-width: 110px !important;
+      margin-left: 0 !important;
+      margin-right: auto !important;
+      text-align: left !important;
+      padding: 8px 12px !important;
+      border-radius: 12px !important;
+      border: 1px solid rgba(255,255,255,.18) !important;
+      background: rgba(255,255,255,.08) !important;
+      color: var(--text) !important;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.03) !important;
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+    #customCatalogModal .compactRatesTable input[type="number"]::-webkit-outer-spin-button,
+    #customCatalogModal .compactRatesTable input[type="number"]::-webkit-inner-spin-button{
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    #customCatalogModal .compactRatesTable input[type="number"]::placeholder{
+      color: rgba(255,255,255,.28) !important;
+    }
+    #customCatalogModal .compactRatesTable input[type="number"]:focus{
+      outline: none !important;
+      border-color: rgba(102,140,255,.45) !important;
+      box-shadow: 0 0 0 3px rgba(102,140,255,.10) !important;
+    }
+
+
+    .calcChargeButtons{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}
+    .calcChargeButtons .btn{width:100%;justify-content:center}
+    #calcTypeResetBtn{
+      background:rgba(255,255,255,.08);
+      border-color:rgba(255,255,255,.24);
+      color:rgba(255,255,255,.96);
+      min-width:220px;
+      justify-content:center;
+    }
+    @media (max-width:980px){ .calcChargeButtons{grid-template-columns:1fr 1fr} }
+    @media (max-width:640px){ .calcChargeButtons{grid-template-columns:1fr} #calcTypeResetBtn{width:100%;min-width:0} }
+
+
+    /* Υπολογισμός • οπτικό active state για είδος χρέωσης */
+    .calcChargeButtons .btn.active,
+    #calcTypeResetBtn.active{
+      background:linear-gradient(180deg,rgba(102,140,255,.35),rgba(102,140,255,.12)) !important;
+      border-color:rgba(102,140,255,.55) !important;
+      box-shadow:0 12px 30px rgba(102,140,255,.14) !important;
+    }
+
+
+    .loginOverlay{
+      position:fixed;inset:0;z-index:10000;
+      background:
+        radial-gradient(900px 500px at 10% 0%, rgba(102,140,255,.28), transparent 60%),
+        radial-gradient(700px 400px at 100% 10%, rgba(46,229,157,.18), transparent 55%),
+        radial-gradient(900px 600px at 40% 100%, rgba(255,204,102,.12), transparent 60%),
+        linear-gradient(180deg,#070a14 0%,#0b1020 55%,#090d1a 100%);
+      display:none;align-items:center;justify-content:center;padding:18px;
+    }
+    .loginOverlay.show{display:flex}
+    .loginCard{
+      width:min(460px,100%);
+      border:1px solid var(--stroke2);
+      border-radius:24px;
+      background:linear-gradient(180deg,rgba(20,28,52,.96),rgba(9,13,26,.98));
+      box-shadow:0 24px 80px rgba(0,0,0,.5);
+      padding:22px;
+    }
+    .loginBrand{font-size:12px;color:var(--muted);font-weight:900;letter-spacing:.3px;text-transform:uppercase}
+    .loginTitle{font-size:30px;font-weight:990;margin-top:8px}
+    .loginSub{font-size:14px;color:var(--muted);margin-top:6px;line-height:1.45}
+    .authUserBadge{
+      border:1px solid var(--stroke);
+      background:rgba(255,255,255,.06);
+      color:rgba(255,255,255,.9);
+      border-radius:14px;
+      padding:11px 14px;
+      font-weight:800;
+      display:inline-flex;align-items:center;gap:8px;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div id="loginOverlay" class="loginOverlay show">
+    <div class="loginCard">
+      <div class="loginBrand">Kronos Express RateCalc</div>
+      <div class="loginTitle">Σύνδεση</div>
+      <div class="loginSub">Μπες με το email και το password που σου έχει δοθεί.</div>
+      <div class="spacer12"></div>
+      <label for="loginEmail">Email</label>
+      <div class="field">
+        <div class="icon">✉️</div>
+        <input id="loginEmail" type="email" placeholder="you@example.com" autocomplete="username" />
+      </div>
+      <div class="spacer12"></div>
+      <label for="loginPassword">Password</label>
+      <div class="field">
+        <div class="icon">🔒</div>
+        <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" />
+      </div>
+      <div class="spacer12"></div>
+      <button class="btn primary" id="loginBtn" type="button" style="width:100%;justify-content:center;">🔐 Είσοδος</button>
+      <div class="toast bad" id="loginToast" style="display:none;margin-top:12px;"></div>
+    </div>
+  </div>
+  <div class="wrap" style="display:none;">
+    <div class="topbar">
+      <div class="brand">
+        <h1>Kronos Express RateCalc</h1>
+        <div class="sub">Ελλάδα → Κύπρος • Αεροπορικό / Πλοίο • VAT ανά πληρωτή • Default ρυθμίσεις από Admin</div>
+        <div class="version">Version v2.1.4</div>
+      </div>
+
+      <div class="topActions">
+        <span class="authUserBadge" id="authUserBadge">—</span>
+        <button class="btn blue tabBtn active" type="button" data-tab="calcTab">🧮 Υπολογισμός</button>
+        <button class="btn tabBtn" type="button" data-tab="historyTab">🕘 Ιστορικό</button>
+        <button class="btn primary tabBtn" type="button" data-tab="adminTab">🛠️ Admin</button>
+        <button class="btn danger" id="logoutBtn" type="button">🚪 Logout</button>
+      </div>
+    </div>
+
+    <!-- CALC -->
+    <section class="tabPane active" id="calcTab">
+      <div class="gridMain">
+        <section class="card">
+          <div class="cardHeader">
+            <div>
+              <h2>Στοιχεία αποστολής</h2>
+              <div class="sub">Ο πελάτης μπορεί να έχει ξεχωριστές τιμές για Αεροπορικό και Πλοίο. Το πρόγραμμα διαβάζει αυτόματα το προφίλ του.</div>
+            </div>
+            <div class="sub" id="calcModeLabel">Mode: Νέα εγγραφή</div>
+          </div>
+
+          <div class="content">
+            <div class="row2">
+              <div>
+                <label for="calcΣυμφωνίαer">Πελάτης</label>
+                <div class="field">
+                  <div class="icon">👤</div>
+                  <input id="calcΣυμφωνίαer" list="customersList" placeholder="π.χ. HM001 ή H&M" autocomplete="off" />
+                  <div class="suffix">saved</div>
+                </div>
+                <datalist id="customersList"></datalist>
+              </div>
+
+              <div>
+                <label>Ποιος πληρώνει</label>
+                <div class="seg">
+                  <button id="payerSenderBtn" type="button" class="active">Αποστολέας (VAT 24%)</button>
+                  <button id="payerReceiverBtn" type="button">Παραλήπτης (VAT 19%)</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="spacer12"></div>
+
+            <div class="row2">
+              <div>
+                <label>Τρόπος μεταφοράς</label>
+                <div class="seg">
+                  <button id="transportAirBtn" type="button" class="active">Αεροπορικό</button>
+                  <button id="transportSeaBtn" type="button">Πλοίο</button>
+                </div>
+                <div class="sub" style="margin-top:6px;" id="transportRuleLine">Ογκομετρικό /5000</div>
+              </div>
+
+              <div>
+                <label>Extra χρεώσεις</label>
+                <div class="seg" style="grid-template-columns:1fr;">
+                  <button id="pickupBtn" type="button">Παραλαβή (+€5)</button>
+                </div>
+              </div>
+            </div>
+
+
+            <div class="spacer12"></div>
+
+            <div>
+              <label>Είδος χρέωσης</label>
+              <div class="row4 calcChargeButtons" style="margin-top:2px;">
+                <button id="calcTypeCustomBtn" type="button" class="btn">Ογκομετρικό / Βάρος</button>
+                <button id="calcTypeCubicBtn" type="button" class="btn">Κυβικό</button>
+                <button id="calcTypePieceBtn" type="button" class="btn">Ανά τεμάχιο</button>
+                <button id="calcTypeDefaultBtn" type="button" class="btn">Default</button>
+              </div>
+              <div style="margin-top:10px;display:flex;">
+                <button id="calcTypeResetBtn" type="button" class="btn active">Προεπιλογή πελάτη</button>
+              </div>
+              <div class="sub" style="margin-top:6px;" id="calcChargeModeHint">Θα φορτώνει αυτόματα τον κύριο τρόπο χρέωσης του πελάτη.</div>
+            </div>
+
+            <div class="spacer12"></div>
+
+            <div class="row2">
+              <div>
+                <label>Τρόπος χρέωσης πελάτη</label>
+                <div class="box">
+                  <div id="customerChargeTypeLine" class="sub">Δεν έχει επιλεγεί πελάτης.</div>
+                  <div style="margin-top:8px;" id="customerRateDetails"></div>
+                </div>
+              </div>
+
+              <div>
+                <label>Γρήγορη εικόνα</label>
+                <div class="box">
+                  <div class="sub" id="quickInfoLine1">—</div>
+                  <div class="sub" id="quickInfoLine2" style="margin-top:6px;">—</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="spacer12"></div>
+
+            <div class="card" style="border-radius:16px; box-shadow:none;">
+              <div class="cardHeader">
+                <div>
+                  <h2>Τεμάχια / κιβώτια</h2>
+                  <div class="sub">Η ποσότητα πολλαπλασιάζει το κάθε τεμάχιο. Συμπλήρωσε διαστάσεις ή/και βάρος.</div>
+                </div>
+                <div class="miniActions">
+                  <button class="miniBtn primary" id="addItemBtn" type="button">➕ Προσθήκη τεμάχιο</button>
+                  <button class="miniBtn danger" id="clearItemsBtn" type="button">🧹 Καθαρισμός γραμμών</button>
+                </div>
+              </div>
+              <div class="content">
+                <div class="tableWrap">
+                  <table class="itemTable" style="min-width:980px;">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th class="right">Μήκος (cm)</th>
+                        <th class="right">Πλάτος (cm)</th>
+                        <th class="right">Ύψος (cm)</th>
+                        <th class="right">Βάρος (kg)</th>
+                        <th class="right">Ποσότητα</th>
+                        <th class="right">Vol / τεμ.</th>
+                        <th class="right">m³ / τεμ.</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="itemsBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="spacer12"></div>
+
+            <div class="row2">
+              <div id="manualCubicWrap" class="hidden">
+                <label for="manualCubicRate">Συμφωνία τιμή ανά m³ για τον υπολογισμό</label>
+                <div class="field">
+                  <div class="icon">📦</div>
+                  <input id="manualCubicRate" type="number" min="0" step="0.01" placeholder="αν θες άλλη τιμή" />
+                  <div class="suffix">€/m³</div>
+                </div>
+              </div>
+
+              <div id="manualPieceWrap" class="hidden">
+                <label for="manualPieceRate">Συμφωνία τιμή ανά τεμάχιο για τον υπολογισμό</label>
+                <div class="field">
+                  <div class="icon">🧾</div>
+                  <input id="manualPieceRate" type="number" min="0" step="0.01" placeholder="αν θες άλλη τιμή" />
+                  <div class="suffix">€/τεμ.</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+              <button class="btn primary" id="calcBtn" type="button">✅ Υπολογισμός & Save</button>
+              <button class="btn blue" id="calcOnlyBtn" type="button">🧮 Μόνο υπολογισμός</button>
+              <button class="btn" id="copyCalcBtn" type="button">📋 Αντιγραφή</button>
+              <button class="btn danger" id="cancelCalcEditBtn" type="button" style="display:none;">↩️ Cancel edit</button>
+              <button class="btn danger" id="resetCalcBtn" type="button">🧹 Καθαρισμός φόρμας</button>
+            </div>
+
+            <div class="toast" id="calcToast"></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="cardHeader">
+            <div>
+              <h2>Αποτέλεσμα</h2>
+              <div class="sub" id="resultExplain">—</div>
+            </div>
+            <div class="sub" id="vatLabelTop">VAT: —</div>
+          </div>
+
+          <div class="content">
+            <div class="kpiGrid">
+              <div class="kpi">
+                <div class="t">Σύνολο τεμαχίων</div>
+                <div class="v" id="kpiPieces">—</div>
+                <div class="s" id="kpiPiecesSub">—</div>
+              </div>
+              <div class="kpi">
+                <div class="t">Συνολικό πραγματικό βάρος</div>
+                <div class="v" id="kpiKg">—</div>
+                <div class="s" id="kpiKgSub">—</div>
+              </div>
+              <div class="kpi">
+                <div class="t">Συνολικό ογκομετρικό</div>
+                <div class="v" id="kpiVol">—</div>
+                <div class="s" id="kpiVolSub">—</div>
+              </div>
+              <div class="kpi">
+                <div class="t">Συνολικό κυβικό</div>
+                <div class="v" id="kpiCubic">—</div>
+                <div class="s" id="kpiCubicSub">—</div>
+              </div>
+              <div class="kpi">
+                <div class="t">Χρεώσιμο μέγεθος</div>
+                <div class="v" id="kpiBillable">—</div>
+                <div class="s" id="kpiBillableSub">—</div>
+              </div>
+              <div class="kpi">
+                <div class="t">Τρόπος χρέωσης</div>
+                <div class="v" id="kpiChargeType">—</div>
+                <div class="s" id="kpiChargeTypeSub">—</div>
+              </div>
+              <div class="kpi">
+                <div class="t">Τιμή χωρίς VAT</div>
+                <div class="v" id="kpiNet">—</div>
+                <div class="s" id="kpiNetSub">—</div>
+              </div>
+              <div class="kpi">
+                <div class="t">Τιμή με VAT</div>
+                <div class="v" id="kpiGross">—</div>
+                <div class="s" id="kpiGrossSub">—</div>
+              </div>
+            </div>
+
+            <div class="big">
+              <div class="t">Σύνοψη</div>
+              <div class="v" id="summaryMain">—</div>
+              <div class="s" id="summarySub">—</div>
+            </div>
+
+            <details open>
+              <summary>
+                <span>Τιμοκατάλογος πελάτη</span>
+                <span class="sub" id="ratesSummaryLabel">Αεροπορικό / Πλοίο</span>
+              </summary>
+              <div class="content">
+                <div class="adminRatesWrap">
+                  <div class="box">
+                    <div class="sub" style="margin-bottom:8px;">Αεροπορικό</div>
+                    <div class="tableWrap">
+                      <table class="ratesTightTable">
+                        <thead>
+                          <tr><th>Έως kg</th><th class="right">Τιμή (€)</th></tr>
+                        </thead>
+                        <tbody id="defaultAirRatesBody"></tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div class="box">
+                    <div class="sub" style="margin-bottom:8px;">Πλοίο</div>
+                    <div class="tableWrap">
+                      <table class="ratesTightTable">
+                        <thead>
+                          <tr><th>Έως kg</th><th class="right">Τιμή (€)</th></tr>
+                        </thead>
+                        <tbody id="defaultSeaRatesBody"></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+                <div class="sub" style="margin-top:10px;" id="defaultRatesFooter">
+                  Οι ρυθμίσεις ενημερώνονται από το Admin.
+                </div>
+              </div>
+            </details>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- HISTORY -->
+    <section class="tabPane" id="historyTab">
+      <section class="card">
+        <div class="cardHeader">
+          <div>
+            <h2>Ιστορικό εγγραφών</h2>
+            <div class="sub">Όλες οι αποθηκευμένες αποστολές.</div>
+          </div>
+          <div class="sub">Version v2.1.2</div>
+        </div>
+
+        <div class="content">
+          <div class="row4">
+            <div>
+              <label for="historyFilterΣυμφωνίαer">Φίλτρο πελάτη</label>
+              <div class="field">
+                <div class="icon">🔎</div>
+                <input id="historyFilterΣυμφωνίαer" list="customersList" placeholder="όνομα ή κωδικός" autocomplete="off" />
+              </div>
+            </div>
+            <div>
+              <label for="historyFilterMonth">Μήνας</label>
+              <div class="field">
+                <div class="icon">📅</div>
+                <input id="historyFilterMonth" type="month" />
+              </div>
+            </div>
+            <div>
+              <label for="historyFilterChargeType">Τύπος χρέωσης</label>
+              <div class="field">
+                <div class="icon">⚙️</div>
+                <select id="historyFilterChargeType">
+                  <option value="">Όλοι</option>
+                  <option value="default">Default</option>
+                  <option value="custom_tiers">Ογκομετρικό / Βάρος</option>
+                  <option value="cubic">Κυβικό</option>
+                  <option value="piece">Ανά τεμάχιο</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label for="historyFilterTransport">Μεταφορά</label>
+              <div class="field">
+                <div class="icon">✈️</div>
+                <select id="historyFilterTransport">
+                  <option value="">Όλα</option>
+                  <option value="air">Αεροπορικό</option>
+                  <option value="sea">Πλοίο</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="spacer12"></div>
+
+          <div class="row2">
+            <div class="kpi">
+              <div class="t">Σύνολα φίλτρων</div>
+              <div class="v" id="historyTotalsLine">—</div>
+              <div class="s" id="historyTotalsSub">—</div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+              <button class="btn" id="exportCsvBtn" type="button">⬇️ Export CSV</button>
+              <button class="btn" id="backupBtn" type="button">🧷 Backup JSON</button>
+              <button class="btn" id="importBtn" type="button">📥 Import JSON</button>
+              <button class="btn danger" id="clearHistoryBtn" type="button">🧨 Clear history</button>
+            </div>
+          </div>
+
+          <input id="importFile" type="file" accept="application/json,.json" style="display:none;" />
+
+          <div class="spacer12"></div>
+
+          <div class="tableWrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ημ/νία</th>
+                  <th>Πελάτης</th>
+                  <th>Μεταφορά</th>
+                  <th>Πληρωτής</th>
+                  <th>Τύπος χρέωσης</th>
+                  <th class="right">Τεμάχια</th>
+                  <th class="right">Kg</th>
+                  <th class="right">VolKg</th>
+                  <th class="right">m³</th>
+                  <th class="right">Net</th>
+                  <th class="right">Gross</th>
+                  <th>Flags</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="historyBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <!-- ADMIN -->
+    <section class="tabPane" id="adminTab">
+      <div class="gridMain">
+        <section class="card">
+          <div class="cardHeader">
+            <div>
+              <h2>Admin • Πελάτες</h2>
+              <div class="sub">Στο Admin περνάς τις τιμές ανά πελάτη, ξεχωριστά για Αεροπορικό και Πλοίο.</div>
+            </div>
+            <div class="sub" id="adminModeLabel">Mode: Νέος πελάτης</div>
+          </div>
+
+          <div class="content">
+            <div class="spacer12"></div>
+
+<div class="box" style="margin-bottom:12px;">
+              <div class="row2" style="align-items:end;">
+                <div>
+                  <div style="font-weight:980; font-size:14px; margin-bottom:6px;">Default τιμοκατάλογος συστήματος</div>
+                  <div class="sub">Πατάς το κουμπί και ανοίγει ξεχωριστό μεγάλο παράθυρο για να βλέπεις όλες τις default ρυθμίσεις χωρίς να κόβονται.</div>
+                </div>
+                <div style="display:flex; align-items:end;">
+                  <button class="btn blue" id="toggleDefaultCatalogBtn" type="button" style="width:100%;">⚙️ Default τιμοκατάλογος</button>
+                </div>
+              </div>
+            </div>
+
+            
+
+            <div class="row2">
+              <div>
+                <label for="adminCode">Κωδικός πελάτη</label>
+                <div class="field">
+                  <div class="icon">#</div>
+                  <input id="adminCode" placeholder="π.χ. HM001" />
+                </div>
+              </div>
+              <div>
+                <label for="adminName">Όνομα πελάτη</label>
+                <div class="field">
+                  <div class="icon">👤</div>
+                  <input id="adminName" placeholder="π.χ. H&M" />
+                </div>
+              </div>
+            </div>
+
+            <div class="spacer12"></div>
+
+            <div>
+              <label>Είδος χρέωσης</label>
+              <div class="seg3">
+                <button id="adminTypeDefault" type="button" class="active">Default</button>
+                <button id="adminTypeCubic" type="button">Κυβικό</button>
+                <button id="adminTypePiece" type="button">Ανά τεμάχιο</button>
+              </div>
+              <div class="seg" style="margin-top:10px;">
+                <button id="adminTypeCustom" type="button">Τιμές συμφωνίας</button>
+                <button id="adminActiveBtn" type="button" class="active">Ενεργός πελάτης</button>
+              </div>
+            </div>
+
+            <div class="spacer12"></div>
+
+            <div id="adminDefaultBox" class="box">
+              <div class="sub">Διάλεξε εδώ ποιος είναι ο κύριος τρόπος χρέωσης του πελάτη. Μπορείς ταυτόχρονα να περάσεις κυβικό, ανά τεμάχιο και Τιμές συμφωνίας.</div>
+            </div>
+
+            <div id="adminCubicBox" class="box">
+              <div class="row2">
+                <div>
+                  <label for="adminCubicRateAir">Τιμή ανά m³ • Αεροπορικό</label>
+                  <div class="field">
+                    <div class="icon">✈️</div>
+                    <input id="adminCubicRateAir" type="number" min="0" step="0.01" placeholder="π.χ. 65" />
+                    <div class="suffix">€/m³</div>
+                  </div>
+                </div>
+                <div>
+                  <label for="adminCubicRateSea">Τιμή ανά m³ • Πλοίο</label>
+                  <div class="field">
+                    <div class="icon">🚢</div>
+                    <input id="adminCubicRateSea" type="number" min="0" step="0.01" placeholder="π.χ. 65" />
+                    <div class="suffix">€/m³</div>
+                  </div>
+                </div>
+              </div>
+              <div class="sub" style="margin-top:8px;">Το minimum στο κυβικό είναι πάντα €55 πριν το VAT.</div>
+            </div>
+
+            <div id="adminPieceBox" class="box">
+              <div class="row2">
+                <div>
+                  <label for="adminPieceRateAir">Τιμή ανά τεμάχιο • Αεροπορικό</label>
+                  <div class="field">
+                    <div class="icon">✈️</div>
+                    <input id="adminPieceRateAir" type="number" min="0" step="0.01" placeholder="π.χ. 4.50" />
+                    <div class="suffix">€/τεμ.</div>
+                  </div>
+                </div>
+                <div>
+                  <label for="adminPieceRateSea">Τιμή ανά τεμάχιο • Πλοίο</label>
+                  <div class="field">
+                    <div class="icon">🚢</div>
+                    <input id="adminPieceRateSea" type="number" min="0" step="0.01" placeholder="π.χ. 4.50" />
+                    <div class="suffix">€/τεμ.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="adminΣυμφωνίαBox" class="box">
+              <div class="sub" style="margin-bottom:10px;">Οι Τιμές συμφωνίας ανοίγουν σε ξεχωριστό μεγάλο παράθυρο για να περνάς άνετα τις τιμές.</div>
+              <button class="btn blue" id="openCustomCatalogBtn" type="button">🧾 Δημιουργία</button>
+            </div>
+
+            <div class="spacer12"></div>
+
+            <div>
+              <label for="adminNotes">Σημειώσεις</label>
+              <div class="field" style="align-items:flex-start;">
+                <div class="icon">📝</div>
+                <textarea id="adminNotes" placeholder="προαιρετικές σημειώσεις"></textarea>
+              </div>
+            </div>
+
+            <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+              <button class="btn primary" id="saveΣυμφωνίαerBtn" type="button">💾 Save πελάτη</button>
+              <button class="btn danger" id="deleteΣυμφωνίαerBtn" type="button">🗑️ Delete πελάτη</button>
+              <button class="btn danger" id="cancelAdminEditBtn" type="button" style="display:none;">↩️ Cancel edit</button>
+              <button class="btn" id="resetAdminBtn" type="button">🧹 Καθαρισμός φόρμας</button>
+            </div>
+
+            <div class="toast" id="adminToast"></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="cardHeader">
+            <div>
+              <h2>Λίστα πελατών</h2>
+              <div class="sub">Αποθηκευμένοι πελάτες με ξεχωριστές τιμές ανά τρόπο μεταφοράς.</div>
+            </div>
+            <div class="sub">Version v2.1.1</div>
+          </div>
+
+          <div class="content">
+            <div class="row2">
+              <div>
+                <label for="adminFilter">Φίλτρο πελάτη</label>
+                <div class="field">
+                  <div class="icon">🔎</div>
+                  <input id="adminFilter" placeholder="κωδικός ή όνομα" />
+                </div>
+              </div>
+              <div>
+                <label for="adminTypeFilter">Φίλτρο τύπου</label>
+                <div class="field">
+                  <div class="icon">⚙️</div>
+                  <select id="adminTypeFilter">
+                    <option value="">Όλοι</option>
+                    <option value="default">Default</option>
+                    <option value="custom_tiers">Ογκομετρικό / Βάρος</option>
+                    <option value="cubic">Κυβικό</option>
+                    <option value="piece">Ανά τεμάχιο</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="spacer12"></div>
+
+            <div class="tableWrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Κωδικός</th>
+                    <th>Όνομα</th>
+                    <th>Τύπος</th>
+                    <th>Αεροπορικό</th>
+                    <th>Πλοίο</th>
+                    <th>Σημειώσεις</th>
+                    <th>Flags</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="adminΣυμφωνίαersBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </div>
+
+  
+  <div id="defaultCatalogModal" class="modalOverlay" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div>
+          <h2>Default ρυθμίσεις συστήματος</h2>
+          <div class="sub">Ό,τι αλλάζεις εδώ εφαρμόζεται σε όλους τους πελάτες που έχουν τύπο χρέωσης Default.</div>
+        </div>
+        <button class="btn danger modalClose" id="closeDefaultCatalogBtn" type="button">✖ Κλείσιμο</button>
+      </div>
+      <div class="modalBody">
+        <div class="adminRatesWrap">
+          <div class="box">
+            <div class="sub" style="margin-bottom:8px;">Default rates • Αεροπορικό</div>
+            <div class="tableWrap">
+              <table class="compactRatesTable">
+                <thead><tr><th>έως kg</th><th class="right">τιμή (€)</th></tr></thead>
+                <tbody id="adminDefaultRatesAirBody"></tbody>
+              </table>
+            </div>
+            <div class="spacer12"></div>
+            <div class="row3">
+              <div><label for="adminDefaultCubicRateAir">Τιμή / m³</label><div class="field"><div class="icon">📦</div><input id="adminDefaultCubicRateAir" type="number" min="0" step="0.01" /></div></div>
+              <div><label for="adminDefaultExtraPerAir">Extra / kg</label><div class="field"><div class="icon">➕</div><input id="adminDefaultExtraPerAir" type="number" min="0" step="0.01" /></div></div>
+              <div><label for="adminDefaultVolDivisorAir">Διαιρέτης Vol</label><div class="field"><div class="icon">📏</div><input id="adminDefaultVolDivisorAir" type="number" min="1" step="1" /></div></div>
+            </div>
+          </div>
+          <div class="box">
+            <div class="sub" style="margin-bottom:8px;">Default rates • Πλοίο</div>
+            <div class="tableWrap">
+              <table class="compactRatesTable">
+                <thead><tr><th>έως kg</th><th class="right">τιμή (€)</th></tr></thead>
+                <tbody id="adminDefaultRatesSeaBody"></tbody>
+              </table>
+            </div>
+            <div class="spacer12"></div>
+            <div class="row3">
+              <div><label for="adminDefaultCubicRateSea">Τιμή / m³</label><div class="field"><div class="icon">📦</div><input id="adminDefaultCubicRateSea" type="number" min="0" step="0.01" /></div></div>
+              <div><label for="adminDefaultExtraPerSea">Extra / kg</label><div class="field"><div class="icon">➕</div><input id="adminDefaultExtraPerSea" type="number" min="0" step="0.01" /></div></div>
+              <div><label for="adminDefaultVolDivisorSea">Διαιρέτης Vol</label><div class="field"><div class="icon">📏</div><input id="adminDefaultVolDivisorSea" type="number" min="1" step="1" /></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="spacer12"></div>
+        <div class="row4">
+          <div><label for="adminDefaultPickupFee">Παραλαβή • Υπόλοιπα</label><div class="field"><div class="icon">🚚</div><input id="adminDefaultPickupFee" type="number" min="0" step="0.01" /></div></div>
+          <div><label for="adminDefaultPickupFeeCubic">Παραλαβή • Κυβικό</label><div class="field"><div class="icon">📦</div><input id="adminDefaultPickupFeeCubic" type="number" min="0" step="0.01" /></div></div>
+          <div><label for="adminDefaultMinCubicNet">Minimum κυβικού</label><div class="field"><div class="icon">€</div><input id="adminDefaultMinCubicNet" type="number" min="0" step="0.01" /></div></div>
+          <div style="display:flex;align-items:end;"><button class="btn primary" id="saveDefaultSettingsBtn" type="button" style="width:100%;">💾 Save default ρυθμίσεις</button></div>
+        </div>
+        <div class="sub" style="margin-top:10px;">Προεπιλογή: Παραλαβή για κυβικό €25 και για όλα τα υπόλοιπα €5.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="customCatalogModal" class="modalOverlay" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div>
+          <h2>Τιμές συμφωνίας πελάτη</h2>
+          <div class="sub">Πέρασε τις συμφωνημένες τιμές για Αεροπορικό και Πλοίο σε μεγάλο παράθυρο.</div>
+        </div>
+        <button class="btn danger modalClose" id="closeΣυμφωνίαCatalogBtn" type="button">✖ Κλείσιμο</button>
+      </div>
+      <div class="modalBody">
+        <div class="adminRatesWrap">
+          <div class="box">
+            <div class="sub" style="margin-bottom:8px;">Συμφωνία rates • Αεροπορικό</div>
+            <div class="tableWrap">
+              <table class="compactRatesTable">
+                <thead>
+                  <tr><th>έως kg</th><th class="right">τιμή (€)</th></tr>
+                </thead>
+                <tbody id="adminΣυμφωνίαRatesAirBody"></tbody>
+              </table>
+            </div>
+            <div class="spacer12"></div>
+            <div class="row3">
+              <div>
+                <label for="adminOver50BaseAir">Βάση τελευταίας τιμής</label>
+                <div class="sub" style="margin:4px 0 6px 0;">Αν αφήσεις κενά πιο πάνω, θα πιάσει σαν τελευταίο το τελευταίο κιλό που συμπλήρωσες.</div>
+                <div class="field"><div class="icon">⚖️</div><input id="adminOver50BaseAir" type="number" min="0" step="0.01" placeholder="π.χ. 12.00" /></div>
+              </div>
+              <div>
+                <label for="adminOver50PerAir">Extra / kg</label>
+                <div class="field"><div class="icon">➕</div><input id="adminOver50PerAir" type="number" min="0" step="0.01" placeholder="3.50" /></div>
+              </div>
+              <div>
+                <label for="adminVolDivisorAir">Διαιρέτης Vol</label>
+                <div class="field"><div class="icon">📏</div><input id="adminVolDivisorAir" type="number" min="1" step="1" placeholder="5000" /></div>
+              </div>
+            </div>
+            <div class="spacer12"></div>
+            <div class="row2">
+              <div>
+                <label for="adminCustomPickupFeeAir">Παραλαβή • Αεροπορικό</label>
+                <div class="field"><div class="icon">🚚</div><input id="adminCustomPickupFeeAir" type="number" min="0" step="0.01" placeholder="π.χ. 5.00" /></div>
+              </div>
+              <div>
+                <label for="adminCustomPickupFeeSea">Παραλαβή • Πλοίο</label>
+                <div class="field"><div class="icon">🚚</div><input id="adminCustomPickupFeeSea" type="number" min="0" step="0.01" placeholder="π.χ. 5.00" /></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="box">
+            <div class="sub" style="margin-bottom:8px;">Συμφωνία rates • Πλοίο</div>
+            <div class="tableWrap">
+              <table class="compactRatesTable">
+                <thead>
+                  <tr><th>έως kg</th><th class="right">τιμή (€)</th></tr>
+                </thead>
+                <tbody id="adminΣυμφωνίαRatesSeaBody"></tbody>
+              </table>
+            </div>
+            <div class="spacer12"></div>
+            <div class="row3">
+              <div>
+                <label for="adminOver50BaseSea">Βάση τελευταίας τιμής</label>
+                <div class="sub" style="margin:4px 0 6px 0;">Το πρόγραμμα θα χρησιμοποιήσει το τελευταίο κιλό που συμπλήρωσες και μετά θα βάλει τα extra κιλά.</div>
+                <div class="field"><div class="icon">⚖️</div><input id="adminOver50BaseSea" type="number" min="0" step="0.01" placeholder="π.χ. 12.00" /></div>
+              </div>
+              <div>
+                <label for="adminOver50PerSea">Extra / kg</label>
+                <div class="field"><div class="icon">➕</div><input id="adminOver50PerSea" type="number" min="0" step="0.01" placeholder="1.00" /></div>
+              </div>
+              <div>
+                <label for="adminVolDivisorSea">Διαιρέτης Vol</label>
+                <div class="field"><div class="icon">📏</div><input id="adminVolDivisorSea" type="number" min="1" step="1" placeholder="3000" /></div>
+              </div>
+            </div>
+            <div class="spacer12"></div>
+            <div class="row2">
+              <div>
+                <label for="adminCustomPickupFeeAirNote">Παραλαβή συμφωνίας</label>
+                <div class="sub">Αν βάλεις τιμές εδώ, στο tab Υπολογισμός θα χρησιμοποιούνται αυτές αντί για τις default όταν ο πελάτης είναι σε Τιμές συμφωνίας.</div>
+              </div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script>
+    const APP_VERSION = "v2.2.0";
+
+    const KEY_CUSTOMERS_V2 = "kronos_cyprus_customers_v210";
+    const KEY_RECORDS_V2   = "kronos_cyprus_records_v210";
+    const KEY_DEFAULTS_V2  = "kronos_cyprus_defaults_v210";
+
+    const VAT_SENDER = 0.24;
+    const VAT_RECEIVER = 0.19;
+
+    const FALLBACK_PICKUP_FEE = 5;
+    const FALLBACK_PICKUP_FEE_CUBIC = 25;
+    const FALLBACK_MIN_CUBIC_NET = 55;
+
+    const DEFAULT_AIR_TIERS = [0.5,1,2,3,4,5,6,7,8,9,10];
+    const DEFAULT_AIR_PRICES = [15,16,20,24,28,31.5,35,38.5,42,45.5,49];
+    const FALLBACK_AIR_CUBIC_RATE = 65;
+    const FALLBACK_AIR_EXTRA_PER_KG = 3.5;
+    const FALLBACK_AIR_VOL_DIVISOR = 5000;
+
+    const DEFAULT_SEA_TIERS = [0.5,1,2,3,4,5,6,7,8,9,10,15,20,30,40,50,60,70,80,90,100];
+    const DEFAULT_SEA_PRICES = [15,15,15,15,15,17,17,19,20,20,20,25,30,40,50,60,70,80,90,100,110];
+    const FALLBACK_SEA_CUBIC_RATE = 65;
+    const FALLBACK_SEA_EXTRA_PER_KG = 1;
+    const FALLBACK_SEA_VOL_DIVISOR = 3000;
+
+    const el = (id) => document.getElementById(id);
+    const nf2 = new Intl.NumberFormat("el-GR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const nf3 = new Intl.NumberFormat("el-GR", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+
+    function euro(n){ return Number.isFinite(n) ? `€ ${nf2.format(n)}` : "—"; }
+    function kgfmt(n){ return Number.isFinite(n) ? `${nf2.format(n)} kg` : "—"; }
+    function m3fmt(n){ return Number.isFinite(n) ? `${nf3.format(n)} m³` : "—"; }
+
+    function esc(s){
+      return String(s ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    }
+
+    function nowISO(){
+      const d = new Date();
+      const pad = (x) => String(x).padStart(2,"0");
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+    function ymFromISO(iso){ return iso?.slice(0,7) || ""; }
+    function currentMonthValue(){
+      const d = new Date();
+      const pad = (x) => String(x).padStart(2,"0");
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}`;
+    }
+    function safeJSONParse(v, fallback){
+      try{ return JSON.parse(v); } catch { return fallback; }
+    }
+    function parseNumLoose(v){
+      if (v == null) return null;
+      if (typeof v === "number") return Number.isFinite(v) ? v : null;
+      const s = String(v).trim().replace(/\s+/g, "").replace(",", ".");
+      if (s === "") return null;
+      const n = Number(s);
+      return Number.isFinite(n) ? n : null;
+    }
+
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCtvrkpS8BsbBxKrXW-EMqaACsfrU7iblc",
+      authDomain: "ratecalc-125a3.firebaseapp.com",
+      projectId: "ratecalc-125a3",
+      storageBucket: "ratecalc-125a3.firebasestorage.app",
+      messagingSenderId: "896489686209",
+      appId: "1:896489686209:web:ade2ae12a2a9ada53ac040"
+    };
+
+    let auth = null;
+    let db = null;
+    let currentUser = null;
+    let uiInitialized = false;
+
+    const cloudState = {
+      customers: [],
+      records: [],
+      defaults: null
+    };
+
+    function deepCopy(v){ return JSON.parse(JSON.stringify(v)); }
+
+    function loadΣυμφωνίαers(){ return deepCopy(cloudState.customers || []); }
+    function saveΣυμφωνίαers(arr){
+      cloudState.customers = deepCopy(arr || []);
+      persistCustomers().catch(err => console.error("persistCustomers", err));
+    }
+    function loadRecords(){ return deepCopy(cloudState.records || []); }
+    function saveRecords(arr){
+      cloudState.records = deepCopy(arr || []);
+      persistRecords().catch(err => console.error("persistRecords", err));
+    }
+
+    function buildDefaultSettings(){
+      return {
+        pickupFee: FALLBACK_PICKUP_FEE,
+        pickupFeeCubic: FALLBACK_PICKUP_FEE_CUBIC,
+        minCubicNet: FALLBACK_MIN_CUBIC_NET,
+        air: { tiers:[...DEFAULT_AIR_TIERS], prices:[...DEFAULT_AIR_PRICES], cubicRate:FALLBACK_AIR_CUBIC_RATE, extraPerKg:FALLBACK_AIR_EXTRA_PER_KG, volDivisor:FALLBACK_AIR_VOL_DIVISOR },
+        sea: { tiers:[...DEFAULT_SEA_TIERS], prices:[...DEFAULT_SEA_PRICES], cubicRate:FALLBACK_SEA_CUBIC_RATE, extraPerKg:FALLBACK_SEA_EXTRA_PER_KG, volDivisor:FALLBACK_SEA_VOL_DIVISOR }
+      };
+    }
+    function sanitizeDefaultSettings(raw){
+      const base = buildDefaultSettings();
+      const src = raw || {};
+      const cleanMode = (mode, fallback) => {
+        const m = src[mode] || {};
+        return {
+          tiers:[...fallback.tiers],
+          prices:fallback.tiers.map((_,i)=>{
+            const v = Array.isArray(m.prices) ? Number(m.prices[i]) : NaN;
+            return Number.isFinite(v) && v >= 0 ? v : fallback.prices[i];
+          }),
+          cubicRate:Number.isFinite(Number(m.cubicRate)) && Number(m.cubicRate) >= 0 ? Number(m.cubicRate) : fallback.cubicRate,
+          extraPerKg:Number.isFinite(Number(m.extraPerKg)) && Number(m.extraPerKg) >= 0 ? Number(m.extraPerKg) : fallback.extraPerKg,
+          volDivisor:Number.isFinite(Number(m.volDivisor)) && Number(m.volDivisor) > 0 ? Number(m.volDivisor) : fallback.volDivisor
+        };
+      };
+      return {
+        pickupFee:Number.isFinite(Number(src.pickupFee)) && Number(src.pickupFee) >= 0 ? Number(src.pickupFee) : base.pickupFee,
+        pickupFeeCubic:Number.isFinite(Number(src.pickupFeeCubic)) && Number(src.pickupFeeCubic) >= 0 ? Number(src.pickupFeeCubic) : base.pickupFeeCubic,
+        minCubicNet:Number.isFinite(Number(src.minCubicNet)) && Number(src.minCubicNet) >= 0 ? Number(src.minCubicNet) : base.minCubicNet,
+        air:cleanMode("air", base.air),
+        sea:cleanMode("sea", base.sea)
+      };
+    }
+    function loadDefaultSettings(){ return sanitizeDefaultSettings(cloudState.defaults || buildDefaultSettings()); }
+    function saveDefaultSettings(settings){
+      cloudState.defaults = sanitizeDefaultSettings(settings);
+      persistDefaults().catch(err => console.error("persistDefaults", err));
+    }
+    function getDefaultModeSettings(mode){ const d = loadDefaultSettings(); return mode === "air" ? d.air : d.sea; }
+
+    async function fetchCloudData(){
+      const defaultsRef = db.collection("app").doc("defaults");
+      const [defaultsSnap, customersSnap, recordsSnap] = await Promise.all([
+        defaultsRef.get(),
+        db.collection("customers").get(),
+        db.collection("records").get()
+      ]);
+
+      cloudState.defaults = defaultsSnap.exists ? sanitizeDefaultSettings(defaultsSnap.data()) : buildDefaultSettings();
+      cloudState.customers = customersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        .sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""), "el"));
+      cloudState.records = recordsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        .sort((a,b)=>String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+    }
+
+    async function persistCustomers(){
+      if (!db || !currentUser) return;
+      const batch = db.batch();
+      const existingSnap = await db.collection("customers").get();
+      const nextMap = new Map((cloudState.customers || []).map(c => [String(c.id), c]));
+      existingSnap.docs.forEach(doc => {
+        if (!nextMap.has(doc.id)) batch.delete(doc.ref);
+      });
+      (cloudState.customers || []).forEach(c => {
+        const id = String(c.id || Date.now());
+        const ref = db.collection("customers").doc(id);
+        const payload = deepCopy(c);
+        payload.id = id;
+        batch.set(ref, payload);
+      });
+      await batch.commit();
+    }
+
+    async function persistRecords(){
+      if (!db || !currentUser) return;
+      const batch = db.batch();
+      const existingSnap = await db.collection("records").get();
+      const nextMap = new Map((cloudState.records || []).map(r => [String(r.id), r]));
+      existingSnap.docs.forEach(doc => {
+        if (!nextMap.has(doc.id)) batch.delete(doc.ref);
+      });
+      (cloudState.records || []).forEach(r => {
+        const id = String(r.id || Date.now());
+        const ref = db.collection("records").doc(id);
+        const payload = deepCopy(r);
+        payload.id = id;
+        batch.set(ref, payload);
+      });
+      await batch.commit();
+    }
+
+    async function persistDefaults(){
+      if (!db || !currentUser) return;
+      await db.collection("app").doc("defaults").set(sanitizeDefaultSettings(cloudState.defaults || buildDefaultSettings()));
+    }
+
+    function showLoginError(msg){
+      const t = el("loginToast");
+      t.textContent = msg;
+      t.style.display = "block";
+    }
+
+    function clearLoginError(){
+      const t = el("loginToast");
+      t.textContent = "";
+      t.style.display = "none";
+    }
+
+    function authErrorMessage(err){
+      const code = err?.code || "";
+      if (code.includes("invalid-credential") || code.includes("wrong-password") || code.includes("user-not-found")) return "Λάθος email ή password.";
+      if (code.includes("too-many-requests")) return "Πολλές προσπάθειες. Δοκίμασε ξανά σε λίγο.";
+      if (code.includes("network")) return "Πρόβλημα σύνδεσης στο internet.";
+      return "Δεν έγινε σύνδεση. Δοκίμασε ξανά.";
+    }
+
+    async function signInNow(){
+      clearLoginError();
+      const email = el("loginEmail").value.trim();
+      const password = el("loginPassword").value;
+      if (!email || !password) return showLoginError("Βάλε email και password.");
+      try{
+        await auth.signInWithEmailAndPassword(email, password);
+      } catch(err){
+        showLoginError(authErrorMessage(err));
+      }
+    }
+
+    async function signOutNow(){
+      if (auth) await auth.signOut();
+    }
+
+    async function bootstrapFirebase(){
+      firebase.initializeApp(firebaseConfig);
+      auth = firebase.auth();
+      db = firebase.firestore();
+
+      el("loginBtn").addEventListener("click", signInNow);
+      el("loginPassword").addEventListener("keydown", (e) => { if (e.key === "Enter") signInNow(); });
+      el("loginEmail").addEventListener("keydown", (e) => { if (e.key === "Enter") signInNow(); });
+      el("logoutBtn").addEventListener("click", signOutNow);
+
+      auth.onAuthStateChanged(async (user) => {
+        currentUser = user || null;
+        if (!user){
+          document.getElementById("loginOverlay").classList.add("show");
+          document.querySelector(".wrap").style.display = "none";
+          el("authUserBadge").textContent = "Αποσυνδεδεμένος";
+          return;
+        }
+
+        el("authUserBadge").textContent = user.email || "Συνδεδεμένος";
+        document.getElementById("loginOverlay").classList.remove("show");
+        document.querySelector(".wrap").style.display = "";
+
+        await fetchCloudData();
+
+        if (!uiInitialized){
+          init();
+          uiInitialized = true;
+        } else {
+          renderDefaultRatesTable();
+          renderCustomersDatalist();
+          renderAdminCustomers();
+          renderHistory();
+          syncCalcCustomerInfo();
+        }
+      });
+    }
+
+    const toastTimers = {};
+    function showToast(id, msg, kind="ok"){
+      const t = el(id);
+      t.className = `toast ${kind}`;
+      t.textContent = msg;
+      t.style.display = "block";
+      clearTimeout(toastTimers[id]);
+      toastTimers[id] = setTimeout(() => { t.style.display = "none"; }, 1800);
+    }
+
+    function setTab(tabId){
+      document.querySelectorAll(".tabPane").forEach(p => p.classList.remove("active"));
+      document.querySelectorAll(".tabBtn").forEach(b => b.classList.remove("active"));
+      el(tabId).classList.add("active");
+      document.querySelectorAll(`.tabBtn[data-tab="${tabId}"]`).forEach(b => b.classList.add("active"));
+    }
+    document.querySelectorAll(".tabBtn").forEach(btn => btn.addEventListener("click", () => setTab(btn.dataset.tab)));
+
+    let adminChargeType = "default";
+    let adminActive = true;
+    let editingΣυμφωνίαerId = null;
+
+    let payer = "sender";
+    let transport = "air";
+    let addPickup = false;
+    let calcChargeOverride = null;
+    let editingRecordId = null;
+
+    function getVatRate(){ return payer === "sender" ? VAT_SENDER : VAT_RECEIVER; }
+    function getPayerLabel(){ return payer === "sender" ? "Αποστολέας" : "Παραλήπτης"; }
+    function getTransportLabel(){ return transport === "air" ? "Αεροπορικό" : "Πλοίο"; }
+    function getVolDivisorByTransport(){ return getDefaultModeSettings(transport).volDivisor; }
+    function getPickupFee(chargeType = null, customer = null){
+      if (customer?.chargeType === "custom_tiers"){
+        const customPickup = transport === "air" ? parseNumLoose(customer.customPickupFeeAir) : parseNumLoose(customer.customPickupFeeSea);
+        if (customPickup != null) return customPickup;
+      }
+      const d = loadDefaultSettings();
+      return chargeType === "cubic" ? d.pickupFeeCubic : d.pickupFee;
+    }
+    function refreshDefaultUiTexts(){
+      const defaults = loadDefaultSettings();
+      el("pickupBtn").textContent = `Παραλαβή (λοιπά €${nf2.format(defaults.pickupFee)} • κυβικό €${nf2.format(defaults.pickupFeeCubic)})`;
+      el("transportRuleLine").textContent = transport === "air" ? `Ογκομετρικό /${defaults.air.volDivisor}` : `Ογκομετρικό /${defaults.sea.volDivisor}`;
+      el("defaultRatesFooter").innerHTML =
+        `Αεροπορικό: ογκομετρικό /${defaults.air.volDivisor} • extra kg €${nf2.format(defaults.air.extraPerKg)} • Παραλαβή λοιπά €${nf2.format(defaults.pickupFee)}<br>` +
+        `Πλοίο: ογκομετρικό /${defaults.sea.volDivisor} • extra kg €${nf2.format(defaults.sea.extraPerKg)} • Παραλαβή κυβικό €${nf2.format(defaults.pickupFeeCubic)} / λοιπά €${nf2.format(defaults.pickupFee)}<br>` +
+        `Κυβικό: minimum ${euro(defaults.minCubicNet)} πριν το VAT`;
+    }
+
+    function setTransport(next){
+      transport = next;
+      el("transportAirBtn").classList.toggle("active", transport === "air");
+      el("transportSeaBtn").classList.toggle("active", transport === "sea");
+      refreshDefaultUiTexts();
+      syncCalcΣυμφωνίαerInfo();
+    }
+
+    function setPickup(on){
+      addPickup = !!on;
+      el("pickupBtn").classList.toggle("active", addPickup);
+      syncCalcΣυμφωνίαerInfo();
+    }
+
+    function renderRatesTable(bodyId, tiers, prices){
+      el(bodyId).innerHTML = tiers.map((tier,i)=>`<tr><td>≤ ${tier}</td><td class="right mono">${prices[i] != null ? nf2.format(Number(prices[i])) : "—"}</td></tr>`).join("");
+    }
+
+    function renderDefaultRatesTable(){
+      const defaults = loadDefaultSettings();
+      renderRatesTable("defaultAirRatesBody", defaults.air.tiers, defaults.air.prices);
+      renderRatesTable("defaultSeaRatesBody", defaults.sea.tiers, defaults.sea.prices);
+      el("adminDefaultCubicRateAir").value = defaults.air.cubicRate;
+      el("adminDefaultExtraPerAir").value = defaults.air.extraPerKg;
+      el("adminDefaultVolDivisorAir").value = defaults.air.volDivisor;
+      el("adminDefaultCubicRateSea").value = defaults.sea.cubicRate;
+      el("adminDefaultExtraPerSea").value = defaults.sea.extraPerKg;
+      el("adminDefaultVolDivisorSea").value = defaults.sea.volDivisor;
+      el("adminDefaultPickupFee").value = defaults.pickupFee;
+      el("adminDefaultPickupFeeCubic").value = defaults.pickupFeeCubic;
+      el("adminDefaultMinCubicNet").value = defaults.minCubicNet;
+      refreshDefaultUiTexts();
+    }
+
+    function customerDisplayName(c){
+
+      const code = (c.code || "").trim();
+      const name = (c.name || "").trim();
+      if (code && name) return `${code} • ${name}`;
+      return code || name || "—";
+    }
+
+    function findΣυμφωνίαerByText(text){
+      const q = String(text || "").trim().toLowerCase();
+      if (!q) return null;
+      const customers = loadΣυμφωνίαers();
+      return customers.find(c =>
+        String(c.code || "").trim().toLowerCase() === q ||
+        String(c.name || "").trim().toLowerCase() === q ||
+        customerDisplayName(c).toLowerCase() === q
+      ) || null;
+    }
+    function findΣυμφωνίαerPartial(text){
+      const q = String(text || "").trim().toLowerCase();
+      if (!q) return null;
+      const customers = loadΣυμφωνίαers();
+      return customers.find(c =>
+        String(c.code || "").toLowerCase().includes(q) ||
+        String(c.name || "").toLowerCase().includes(q)
+      ) || null;
+    }
+
+    function renderΣυμφωνίαersDatalist(){
+      const customers = loadΣυμφωνίαers()
+        .filter(c => c.active !== false)
+        .sort((a,b)=>customerDisplayName(a).localeCompare(customerDisplayName(b), "el"));
+
+      el("customersList").innerHTML = customers.map(c => `
+        <option value="${esc(customerDisplayName(c))}">${esc(customerDisplayName(c))}</option>
+      `).join("");
+    }
+
+    function chargeTypeLabel(type){
+      if (type === "default") return "Default";
+      if (type === "custom_tiers") return "Ογκομετρικό / Βάρος";
+      if (type === "cubic") return "Κυβικό";
+      if (type === "piece") return "Ανά τεμάχιο";
+      return "—";
+    }
+
+    function chargeTypePill(type){
+      if (type === "default") return `<span class="pill blue">Default</span>`;
+      if (type === "custom_tiers") return `<span class="pill warn">Συμφωνία</span>`;
+      if (type === "cubic") return `<span class="pill ok">Κυβικό</span>`;
+      if (type === "piece") return `<span class="pill bad">Ανά τεμάχιο</span>`;
+      return `<span class="pill">—</span>`;
+    }
+
+    function customerModePreview(customer, mode){
+      if (!customer) return "—";
+      if (customer.chargeType === "default") return "Default rates";
+      if (customer.chargeType === "cubic"){
+        const rate = mode === "air" ? customer.cubicRateAir : customer.cubicRateSea;
+        return rate != null ? `€ ${nf2.format(Number(rate))}/m³` : "—";
+      }
+      if (customer.chargeType === "piece"){
+        const rate = mode === "air" ? customer.pieceRateAir : customer.pieceRateSea;
+        return rate != null ? `€ ${nf2.format(Number(rate))}/τεμ.` : "—";
+      }
+      if (customer.chargeType === "custom_tiers"){
+        const rates = mode === "air" ? (customer.customRatesAir || {}) : (customer.customRatesSea || {});
+        const filled = Object.values(rates).filter(v => v != null).length;
+        return filled ? `${filled} κλίμακες` : "Χωρίς τιμές";
+      }
+      return "—";
+    }
+
+    function setAdminChargeType(type){
+      adminChargeType = type;
+      el("adminTypeDefault").classList.toggle("active", type === "default");
+      el("adminTypeCustom").classList.toggle("active", type === "custom_tiers");
+      el("adminTypeCubic").classList.toggle("active", type === "cubic");
+      el("adminTypePiece").classList.toggle("active", type === "piece");
+
+      el("adminDefaultBox").classList.remove("hidden");
+      el("adminΣυμφωνίαBox").classList.remove("hidden");
+      el("adminCubicBox").classList.remove("hidden");
+      el("adminPieceBox").classList.remove("hidden");
+    }
+
+    function setAdminActive(on){
+      adminActive = !!on;
+      el("adminActiveBtn").classList.toggle("active", adminActive);
+      el("adminActiveBtn").textContent = adminActive ? "Ενεργός πελάτης" : "Ανενεργός πελάτης";
+    }
+
+    function renderAdminΣυμφωνίαRatesInputs(bodyId, tiers, values = {}){
+      el(bodyId).innerHTML = tiers.map(tier => `
+        <tr>
+          <td>${tier} kg</td>
+          <td class="right">
+            <input type="number" min="0" step="0.01" data-tier="${tier}" value="${values[tier] != null ? esc(values[tier]) : ""}" />
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    function readTierMapFromBody(bodyId){
+      const map = {};
+      el(bodyId).querySelectorAll("input[data-tier]").forEach(inp => {
+        const tier = String(inp.dataset.tier);
+        const raw = inp.value.trim();
+        map[tier] = raw === "" ? null : parseNumLoose(raw);
+      });
+      return map;
+    }
+
+    function resetAdminForm(){
+      editingΣυμφωνίαerId = null;
+      el("adminCode").value = "";
+      el("adminName").value = "";
+      el("adminNotes").value = "";
+
+      el("adminCubicRateAir").value = "";
+      el("adminCubicRateSea").value = "";
+
+      el("adminPieceRateAir").value = "";
+      el("adminPieceRateSea").value = "";
+
+      el("adminOver50BaseAir").value = "";
+      el("adminOver50PerAir").value = "";
+      el("adminVolDivisorAir").value = "";
+
+      el("adminOver50BaseSea").value = "";
+      el("adminOver50PerSea").value = "";
+      el("adminVolDivisorSea").value = "";
+      el("adminCustomPickupFeeAir").value = "";
+      el("adminCustomPickupFeeSea").value = "";
+
+      renderAdminΣυμφωνίαRatesInputs("adminΣυμφωνίαRatesAirBody", DEFAULT_AIR_TIERS, {});
+      renderAdminΣυμφωνίαRatesInputs("adminΣυμφωνίαRatesSeaBody", DEFAULT_SEA_TIERS, {});
+
+      setAdminChargeType("default");
+      setAdminActive(true);
+      el("adminModeLabel").textContent = "Mode: Νέος πελάτης";
+      el("cancelAdminEditBtn").style.display = "none";
+    }
+
+    function validateAdminForm(){
+      const code = el("adminCode").value.trim();
+      const name = el("adminName").value.trim();
+
+      if (!code) return "Βάλε κωδικό πελάτη.";
+      if (!name) return "Βάλε όνομα πελάτη.";
+
+      const cubicAirRaw = el("adminCubicRateAir").value.trim();
+      const cubicSeaRaw = el("adminCubicRateSea").value.trim();
+      const pieceAirRaw = el("adminPieceRateAir").value.trim();
+      const pieceSeaRaw = el("adminPieceRateSea").value.trim();
+
+      if (cubicAirRaw && (parseNumLoose(cubicAirRaw) == null || parseNumLoose(cubicAirRaw) < 0)) return "Λάθος τιμή κυβικού Αεροπορικό.";
+      if (cubicSeaRaw && (parseNumLoose(cubicSeaRaw) == null || parseNumLoose(cubicSeaRaw) < 0)) return "Λάθος τιμή κυβικού Πλοίο.";
+      if (pieceAirRaw && (parseNumLoose(pieceAirRaw) == null || parseNumLoose(pieceAirRaw) < 0)) return "Λάθος τιμή τεμαχίου Αεροπορικό.";
+      if (pieceSeaRaw && (parseNumLoose(pieceSeaRaw) == null || parseNumLoose(pieceSeaRaw) < 0)) return "Λάθος τιμή τεμαχίου Πλοίο.";
+
+      if (adminChargeType === "cubic" && !cubicAirRaw && !cubicSeaRaw) return "Ο κύριος τρόπος είναι Κυβικό, αλλά δεν έβαλες τιμή κυβικού.";
+      if (adminChargeType === "piece" && !pieceAirRaw && !pieceSeaRaw) return "Ο κύριος τρόπος είναι Ανά τεμάχιο, αλλά δεν έβαλες τιμή.";
+
+      {
+        const airMap = readTierMapFromBody("adminΣυμφωνίαRatesAirBody");
+        const seaMap = readTierMapFromBody("adminΣυμφωνίαRatesSeaBody");
+        const airCount = Object.values(airMap).filter(v => v != null).length;
+        const seaCount = Object.values(seaMap).filter(v => v != null).length;
+        if (adminChargeType === "custom_tiers" && !airCount && !seaCount) return "Ο κύριος τρόπος είναι Τιμές συμφωνίας, αλλά δεν έβαλες καμία τιμή.";
+
+        for (const v of [...Object.values(airMap), ...Object.values(seaMap)]){
+          if (v != null && (!Number.isFinite(v) || v < 0)) return "Υπάρχει λάθος τιμή στις custom κλίμακες.";
+        }
+
+        const checks = [
+          ["adminOver50BaseAir","Λάθος βάση τελευταίας τιμής Αεροπορικό."],
+          ["adminOver50PerAir","Λάθος extra/kg Αεροπορικό."],
+          ["adminVolDivisorAir","Λάθος διαιρέτης Αεροπορικό."],
+          ["adminOver50BaseSea","Λάθος βάση τελευταίας τιμής Πλοίο."],
+          ["adminOver50PerSea","Λάθος extra/kg Πλοίο."],
+          ["adminVolDivisorSea","Λάθος διαιρέτης Πλοίο."]
+        ];
+        for (const [id,msg] of checks){
+          const raw = el(id).value.trim();
+          if (raw !== "" && (parseNumLoose(raw) == null || parseNumLoose(raw) <= 0)) return msg;
+        }
+      }
+
+      return null;
+    }
+
+    function saveΣυμφωνίαerFromAdmin(){
+      const err = validateAdminForm();
+      if (err) return showToast("adminToast", err, "bad");
+
+      let customers = loadΣυμφωνίαers();
+      const code = el("adminCode").value.trim();
+      const name = el("adminName").value.trim();
+
+      const duplicate = customers.find(c =>
+        c.id !== editingΣυμφωνίαerId &&
+        String(c.code || "").trim().toLowerCase() === code.toLowerCase()
+      );
+      if (duplicate) return showToast("adminToast", "Υπάρχει ήδη πελάτης με αυτόν τον κωδικό.", "bad");
+
+      const payload = {
+        code,
+        name,
+        active: adminActive,
+        notes: el("adminNotes").value.trim(),
+        primaryChargeType: adminChargeType,
+        chargeType: adminChargeType,
+        cubicRateAir: el("adminCubicRateAir").value.trim() === "" ? null : parseNumLoose(el("adminCubicRateAir").value.trim()),
+        cubicRateSea: el("adminCubicRateSea").value.trim() === "" ? null : parseNumLoose(el("adminCubicRateSea").value.trim()),
+        pieceRateAir: el("adminPieceRateAir").value.trim() === "" ? null : parseNumLoose(el("adminPieceRateAir").value.trim()),
+        pieceRateSea: el("adminPieceRateSea").value.trim() === "" ? null : parseNumLoose(el("adminPieceRateSea").value.trim()),
+        customRatesAir: readTierMapFromBody("adminΣυμφωνίαRatesAirBody"),
+        customRatesSea: readTierMapFromBody("adminΣυμφωνίαRatesSeaBody"),
+        over50BaseAir: el("adminOver50BaseAir").value.trim() === "" ? null : parseNumLoose(el("adminOver50BaseAir").value.trim()),
+        over50PerAir: el("adminOver50PerAir").value.trim() === "" ? FALLBACK_AIR_EXTRA_PER_KG : parseNumLoose(el("adminOver50PerAir").value.trim()),
+        volDivisorAir: el("adminVolDivisorAir").value.trim() === "" ? FALLBACK_AIR_VOL_DIVISOR : parseNumLoose(el("adminVolDivisorAir").value.trim()),
+        over50BaseSea: el("adminOver50BaseSea").value.trim() === "" ? null : parseNumLoose(el("adminOver50BaseSea").value.trim()),
+        over50PerSea: el("adminOver50PerSea").value.trim() === "" ? FALLBACK_SEA_EXTRA_PER_KG : parseNumLoose(el("adminOver50PerSea").value.trim()),
+        volDivisorSea: el("adminVolDivisorSea").value.trim() === "" ? FALLBACK_SEA_VOL_DIVISOR : parseNumLoose(el("adminVolDivisorSea").value.trim()),
+        updatedAt: nowISO()
+      };
+
+      if (editingΣυμφωνίαerId){
+        const idx = customers.findIndex(c => c.id === editingΣυμφωνίαerId);
+        if (idx === -1) return showToast("adminToast", "Ο πελάτης για edit δεν βρέθηκε.", "bad");
+        customers[idx] = { ...customers[idx], ...payload };
+        saveΣυμφωνίαers(customers);
+        showToast("adminToast", "Έγινε update πελάτη ✅", "ok");
+      } else {
+        customers.unshift({
+          id: String(Date.now()),
+          createdAt: nowISO(),
+          ...payload
+        });
+        saveΣυμφωνίαers(customers);
+        showToast("adminToast", "Ο πελάτης αποθηκεύτηκε ✅", "ok");
+      }
+
+      resetAdminForm();
+      renderΣυμφωνίαersDatalist();
+      renderAdminΣυμφωνίαers();
+      syncCalcΣυμφωνίαerInfo();
+    }
+
+    function startEditΣυμφωνίαer(id){
+      const c = loadΣυμφωνίαers().find(x => x.id === id);
+      if (!c) return showToast("adminToast", "Ο πελάτης δεν βρέθηκε.", "bad");
+
+      editingΣυμφωνίαerId = c.id;
+      el("adminCode").value = c.code || "";
+      el("adminName").value = c.name || "";
+      el("adminNotes").value = c.notes || "";
+
+      el("adminCubicRateAir").value = c.cubicRateAir ?? "";
+      el("adminCubicRateSea").value = c.cubicRateSea ?? "";
+
+      el("adminPieceRateAir").value = c.pieceRateAir ?? "";
+      el("adminPieceRateSea").value = c.pieceRateSea ?? "";
+
+      el("adminOver50BaseAir").value = c.over50BaseAir ?? "";
+      el("adminOver50PerAir").value = c.over50PerAir ?? "";
+      el("adminVolDivisorAir").value = c.volDivisorAir ?? "";
+
+      el("adminOver50BaseSea").value = c.over50BaseSea ?? "";
+      el("adminOver50PerSea").value = c.over50PerSea ?? "";
+      el("adminVolDivisorSea").value = c.volDivisorSea ?? "";
+      el("adminCustomPickupFeeAir").value = c.customPickupFeeAir ?? "";
+      el("adminCustomPickupFeeSea").value = c.customPickupFeeSea ?? "";
+
+      renderAdminΣυμφωνίαRatesInputs("adminΣυμφωνίαRatesAirBody", DEFAULT_AIR_TIERS, c.customRatesAir || {});
+      renderAdminΣυμφωνίαRatesInputs("adminΣυμφωνίαRatesSeaBody", DEFAULT_SEA_TIERS, c.customRatesSea || {});
+      setAdminChargeType(c.primaryChargeType || c.chargeType || "default");
+      setAdminActive(c.active !== false);
+
+      el("adminModeLabel").textContent = "Mode: Edit πελάτη";
+      el("cancelAdminEditBtn").style.display = "inline-flex";
+      setTab("adminTab");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function deleteΣυμφωνίαer(id){
+      const customers = loadΣυμφωνίαers();
+      const c = customers.find(x => x.id === id);
+      if (!c) return showToast("adminToast", "Ο πελάτης δεν βρέθηκε.", "bad");
+
+      if (!confirm(`Να διαγράψω τον πελάτη "${customerDisplayName(c)}";`)) return;
+      saveΣυμφωνίαers(customers.filter(x => x.id !== id));
+      if (editingΣυμφωνίαerId === id) resetAdminForm();
+      renderΣυμφωνίαersDatalist();
+      renderAdminΣυμφωνίαers();
+      syncCalcΣυμφωνίαerInfo();
+      showToast("adminToast", "Ο πελάτης διαγράφηκε.", "ok");
+    }
+
+    function renderAdminΣυμφωνίαers(){
+      const q = el("adminFilter").value.trim().toLowerCase();
+      const type = el("adminTypeFilter").value;
+
+      const rows = loadΣυμφωνίαers().filter(c => {
+        const txt = `${c.code || ""} ${c.name || ""}`.toLowerCase();
+        return (!q || txt.includes(q)) && (!type || c.chargeType === type);
+      });
+
+      if (!rows.length){
+        el("adminΣυμφωνίαersBody").innerHTML = `<tr><td colspan="8" class="muted">Δεν υπάρχουν πελάτες για αυτά τα φίλτρα.</td></tr>`;
+        return;
+      }
+
+      el("adminΣυμφωνίαersBody").innerHTML = rows.map(c => `
+        <tr>
+          <td class="mono">${esc(c.code || "")}</td>
+          <td>${esc(c.name || "")}</td>
+          <td>${chargeTypePill(c.chargeType)}</td>
+          <td>${esc(customerModePreview(c,"air"))}</td>
+          <td>${esc(customerModePreview(c,"sea"))}</td>
+          <td>${esc(c.notes || "—")}</td>
+          <td>${c.active !== false ? `<span class="pill ok">Ενεργός</span>` : `<span class="pill bad">Ανενεργός</span>`}</td>
+          <td>
+            <div class="miniActions">
+              <button class="miniBtn blue" type="button" onclick="window.__editΣυμφωνίαer('${c.id}')">Edit</button>
+              <button class="miniBtn danger" type="button" onclick="window.__deleteΣυμφωνίαer('${c.id}')">Delete</button>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    function calcVolFromInputs(L,W,H,divisor){
+      const nL = Number(L), nW = Number(W), nH = Number(H);
+      if (![nL,nW,nH].every(Number.isFinite) || [nL,nW,nH].some(v => v <= 0)) return NaN;
+      return (nL * nW * nH) / divisor;
+    }
+    function calcCubicFromInputs(L,W,H){
+      const nL = Number(L), nW = Number(W), nH = Number(H);
+      if (![nL,nW,nH].every(Number.isFinite) || [nL,nW,nH].some(v => v <= 0)) return NaN;
+      return (nL * nW * nH) / 1000000;
+    }
+
+    function itemRowHTML(index, item = {}){
+      const divisor = getVolDivisorByTransport();
+      const L = item.L ?? "";
+      const W = item.W ?? "";
+      const H = item.H ?? "";
+      const kg = item.kg ?? "";
+      const qty = item.qty ?? 1;
+      const vol = calcVolFromInputs(L,W,H,divisor);
+      const cubic = calcCubicFromInputs(L,W,H);
+
+      return `
+        <tr data-index="${index}">
+          <td class="mono">${index + 1}</td>
+          <td class="right"><input type="number" min="0" step="0.1" class="itemL" value="${esc(L)}" /></td>
+          <td class="right"><input type="number" min="0" step="0.1" class="itemW" value="${esc(W)}" /></td>
+          <td class="right"><input type="number" min="0" step="0.1" class="itemH" value="${esc(H)}" /></td>
+          <td class="right"><input type="number" min="0" step="0.01" class="itemKg" value="${esc(kg)}" /></td>
+          <td class="right"><input type="number" min="1" step="1" class="itemQty" value="${esc(qty)}" /></td>
+          <td class="right mono itemVolPreview">${Number.isFinite(vol) ? nf2.format(vol) : "—"}</td>
+          <td class="right mono itemCubicPreview">${Number.isFinite(cubic) ? nf3.format(cubic) : "—"}</td>
+          <td><button class="miniBtn danger removeItemBtn" type="button">Delete</button></td>
+        </tr>
+      `;
+    }
+
+    function updateSingleRowPreview(row){
+      const divisor = getVolDivisorByTransport();
+      const L = row.querySelector(".itemL").value.trim();
+      const W = row.querySelector(".itemW").value.trim();
+      const H = row.querySelector(".itemH").value.trim();
+      const vol = calcVolFromInputs(L,W,H,divisor);
+      const cubic = calcCubicFromInputs(L,W,H);
+
+      row.querySelector(".itemVolPreview").textContent = Number.isFinite(vol) ? nf2.format(vol) : "—";
+      row.querySelector(".itemCubicPreview").textContent = Number.isFinite(cubic) ? nf3.format(cubic) : "—";
+    }
+
+    function bindItemRowEvents(row, idx){
+      row.querySelector(".removeItemBtn").addEventListener("click", () => removeItemRow(idx));
+      row.querySelectorAll("input").forEach(inp => {
+        inp.addEventListener("input", () => {
+          updateSingleRowPreview(row);
+          syncCalcΣυμφωνίαerInfo();
+        });
+      });
+    }
+
+    function renderItems(items = null){
+      const body = el("itemsBody");
+      const current = items || readItemsFromUI();
+      const list = current.length ? current : [{ L:"", W:"", H:"", kg:"", qty:1 }];
+      body.innerHTML = list.map((item,i)=>itemRowHTML(i,item)).join("");
+      [...body.querySelectorAll("tr")].forEach((row,idx)=>bindItemRowEvents(row, idx));
+    }
+
+    function addItemRow(){
+      const items = readItemsFromUI();
+      items.push({ L:"", W:"", H:"", kg:"", qty:1 });
+      renderItems(items);
+    }
+
+    function removeItemRow(index){
+      const items = readItemsFromUI();
+      if (items.length === 1){
+        items[0] = { L:"", W:"", H:"", kg:"", qty:1 };
+      } else {
+        items.splice(index, 1);
+      }
+      renderItems(items);
+      syncCalcΣυμφωνίαerInfo();
+    }
+
+    function clearItems(){
+      renderItems([{ L:"", W:"", H:"", kg:"", qty:1 }]);
+      syncCalcΣυμφωνίαerInfo();
+    }
+
+    function readItemsFromUI(){
+      return [...el("itemsBody").querySelectorAll("tr")].map(row => ({
+        L: row.querySelector(".itemL").value.trim(),
+        W: row.querySelector(".itemW").value.trim(),
+        H: row.querySelector(".itemH").value.trim(),
+        kg: row.querySelector(".itemKg").value.trim(),
+        qty: row.querySelector(".itemQty").value.trim() || "1"
+      }));
+    }
+
+    function getSelectedΣυμφωνίαer(){
+      const text = el("calcΣυμφωνίαer").value.trim();
+      return findΣυμφωνίαerByText(text) || findΣυμφωνίαerPartial(text) || null;
+    }
+    function getPrimaryChargeType(customer){
+      return customer?.primaryChargeType || customer?.chargeType || "default";
+    }
+
+    function getResolvedChargeType(customer){
+      return calcChargeOverride || getPrimaryChargeType(customer);
+    }
+
+    function getModeConfig(customer, resolvedChargeType = getResolvedChargeType(customer)){
+      const defaultMode = getDefaultModeSettings(transport);
+      if (transport === "air"){
+        return {
+          tiers:[...defaultMode.tiers],
+          prices:[...defaultMode.prices],
+          extraPerKg:resolvedChargeType === "custom_tiers"
+            ? (parseNumLoose(customer?.over50PerAir) != null ? parseNumLoose(customer.over50PerAir) : defaultMode.extraPerKg)
+            : defaultMode.extraPerKg,
+          volDivisor:resolvedChargeType === "custom_tiers"
+            ? (parseNumLoose(customer?.volDivisorAir) != null ? parseNumLoose(customer.volDivisorAir) : defaultMode.volDivisor)
+            : defaultMode.volDivisor,
+          customRates:customer?.customRatesAir || null,
+          over50Base:customer?.over50BaseAir ?? null,
+          cubicRate:customer?.cubicRateAir ?? defaultMode.cubicRate,
+          pieceRate:customer?.pieceRateAir ?? null
+        };
+      }
+      return {
+        tiers:[...defaultMode.tiers],
+        prices:[...defaultMode.prices],
+        extraPerKg:resolvedChargeType === "custom_tiers"
+          ? (parseNumLoose(customer?.over50PerSea) != null ? parseNumLoose(customer.over50PerSea) : defaultMode.extraPerKg)
+          : defaultMode.extraPerKg,
+        volDivisor:resolvedChargeType === "custom_tiers"
+          ? (parseNumLoose(customer?.volDivisorSea) != null ? parseNumLoose(customer.volDivisorSea) : defaultMode.volDivisor)
+          : defaultMode.volDivisor,
+        customRates:customer?.customRatesSea || null,
+        over50Base:customer?.over50BaseSea ?? null,
+        cubicRate:customer?.cubicRateSea ?? defaultMode.cubicRate,
+        pieceRate:customer?.pieceRateSea ?? null
+      };
+    }
+
+    function validateItems(items, chargeType){
+
+      if (!items.length) return "Βάλε τουλάχιστον ένα τεμάχιο.";
+
+      let totalQty = 0;
+      for (let i=0;i<items.length;i++){
+        const row = items[i];
+        const idx = i + 1;
+        const qty = Number(row.qty);
+        if (!Number.isFinite(qty) || qty <= 0 || !Number.isInteger(qty)) return `Η ποσότητα στη γραμμή ${idx} δεν είναι σωστή.`;
+        totalQty += qty;
+
+        const hasL = row.L !== "", hasW = row.W !== "", hasH = row.H !== "", hasKg = row.kg !== "";
+        const hasAnyDim = hasL || hasW || hasH;
+        const dimsComplete = hasL && hasW && hasH;
+
+        if (chargeType === "piece"){
+          if (hasAnyDim && !dimsComplete) return `Στη γραμμή ${idx}, αν βάλεις διαστάσεις πρέπει να είναι και οι 3.`;
+          if (dimsComplete && !Number.isFinite(calcCubicFromInputs(row.L,row.W,row.H))) return `Λάθος διαστάσεις στη γραμμή ${idx}.`;
+          if (hasKg){
+            const kg = Number(row.kg);
+            if (!Number.isFinite(kg) || kg < 0) return `Λάθος kg στη γραμμή ${idx}.`;
+          }
+          continue;
+        }
+
+        if (!dimsComplete && !hasKg) return `Στη γραμμή ${idx} βάλε τουλάχιστον βάρος ή και τις 3 διαστάσεις.`;
+        if (hasAnyDim && !dimsComplete) return `Στη γραμμή ${idx}, αν βάλεις διαστάσεις πρέπει να είναι και οι 3.`;
+        if (dimsComplete && !Number.isFinite(calcCubicFromInputs(row.L,row.W,row.H))) return `Λάθος διαστάσεις στη γραμμή ${idx}.`;
+        if (hasKg){
+          const kg = Number(row.kg);
+          if (!Number.isFinite(kg) || kg < 0) return `Λάθος kg στη γραμμή ${idx}.`;
+        }
+      }
+
+      if (totalQty <= 0) return "Δεν υπάρχει σωστή ποσότητα.";
+      return null;
+    }
+
+    function collectTotalsFromItems(items, divisor){
+      let totalQty = 0;
+      let totalRealKg = 0;
+      let totalVolKg = 0;
+      let totalCubic = 0;
+
+      for (const row of items){
+        const qty = Number(row.qty);
+        const kg = row.kg === "" ? null : Number(row.kg);
+        const vol = calcVolFromInputs(row.L,row.W,row.H,divisor);
+        const cubic = calcCubicFromInputs(row.L,row.W,row.H);
+
+        totalQty += qty;
+        if (kg != null && Number.isFinite(kg)) totalRealKg += kg * qty;
+        if (Number.isFinite(vol)) totalVolKg += vol * qty;
+        if (Number.isFinite(cubic)) totalCubic += cubic * qty;
+      }
+
+      return { totalQty, totalRealKg, totalVolKg, totalCubic };
+    }
+
+    function priceFromTierTable(billable, tiers, prices, extraPerKg){
+      if (!Number.isFinite(billable) || billable <= 0) return null;
+      const idx = tiers.findIndex(t => billable <= t);
+      if (idx !== -1){
+        return {
+          mode: "tier",
+          tier: tiers[idx],
+          net: prices[idx],
+          extraKg: 0,
+          extraNet: 0
+        };
+      }
+      const lastTier = tiers[tiers.length - 1];
+      const lastPrice = prices[prices.length - 1];
+      const extraKg = Math.ceil(billable - lastTier);
+      const extraNet = extraKg * extraPerKg;
+      return {
+        mode: "over",
+        tier: lastTier,
+        net: lastPrice + extraNet,
+        extraKg,
+        extraNet
+      };
+    }
+
+    function customTierPrice(customer, billable, cfg){
+      const rates = cfg.customRates || {};
+      const tiers = cfg.tiers || [];
+      if (!Number.isFinite(billable) || billable <= 0) return null;
+
+      const filledTiers = tiers
+        .map(t => ({ tier: Number(t), price: parseNumLoose(rates[String(t)]) }))
+        .filter(x => Number.isFinite(x.tier) && x.tier > 0 && Number.isFinite(x.price))
+        .sort((a,b) => a.tier - b.tier);
+
+      if (!filledTiers.length) return null;
+
+      const matched = filledTiers.find(x => billable <= x.tier);
+      if (matched){
+        return {
+          mode: "tier",
+          tier: matched.tier,
+          net: matched.price,
+          extraKg: 0,
+          extraNet: 0
+        };
+      }
+
+      const lastFilled = filledTiers[filledTiers.length - 1];
+      const explicitBase = parseNumLoose(cfg.over50Base);
+      const base = explicitBase != null ? explicitBase : lastFilled.price;
+      if (!Number.isFinite(base)) return null;
+
+      const extraRate = parseNumLoose(cfg.extraPerKg) ?? 0;
+      const extraKg = Math.max(0, Math.ceil(billable - lastFilled.tier));
+      const extraNet = extraKg * extraRate;
+      return {
+        mode: "over",
+        tier: lastFilled.tier,
+        net: base + extraNet,
+        extraKg,
+        extraNet
+      };
+    }
+
+    function computeCalculation(){
+      const customerText = el("calcΣυμφωνίαer").value.trim();
+      if (!customerText) return { ok:false, err:"Βάλε πελάτη." };
+
+      const customer = getSelectedΣυμφωνίαer();
+      const primaryChargeType = getPrimaryChargeType(customer);
+      const chargeType = getResolvedChargeType(customer);
+      setCalcChargeModeButtons(customer);
+      const cfg = getModeConfig(customer);
+      const defaults = loadDefaultSettings();
+      const items = readItemsFromUI();
+
+      const err = validateItems(items, chargeType);
+      if (err) return { ok:false, err };
+
+      const totals = collectTotalsFromItems(items, cfg.volDivisor);
+
+      let net = 0;
+      let billableValue = null;
+      let billableLabel = "";
+      let explain = "";
+      let rateInfo = "";
+      let cubicMinimumApplied = false;
+
+      if (chargeType === "default"){
+        billableValue = Math.max(totals.totalRealKg, totals.totalVolKg);
+        billableLabel = `${nf2.format(billableValue)} kg`;
+        const p = priceFromTierTable(billableValue, cfg.tiers, cfg.prices, cfg.extraPerKg);
+        if (!p) return { ok:false, err:"Δεν βρέθηκε τιμή." };
+        net = p.net;
+        explain = `Χρεώσιμο = max(${nf2.format(totals.totalRealKg)}kg, ${nf2.format(totals.totalVolKg)}kg)`;
+        rateInfo = p.mode === "tier"
+          ? `Default κλίμακα έως ${p.tier}kg`
+          : `Default βάση στα ${p.tier}kg + ${p.extraKg} extra kg`;
+      }
+
+      if (chargeType === "custom_tiers"){
+        billableValue = Math.max(totals.totalRealKg, totals.totalVolKg);
+        billableLabel = `${nf2.format(billableValue)} kg`;
+        const p = customTierPrice(customer, billableValue, cfg);
+        if (!p) return { ok:false, err:"Λείπει custom τιμή για αυτή την κλίμακα / μεταφορά." };
+        net = p.net;
+        explain = `Χρεώσιμο = max(${nf2.format(totals.totalRealKg)}kg, ${nf2.format(totals.totalVolKg)}kg)`;
+        rateInfo = p.mode === "tier"
+          ? `Συμφωνία κλίμακα έως ${p.tier}kg`
+          : `Συμφωνία βάση τελευταίας τιμής στα ${p.tier}kg + ${p.extraKg} extra kg`;
+      }
+
+      if (chargeType === "cubic"){
+        const manualRaw = el("manualCubicRate").value.trim();
+        const rate = manualRaw !== "" ? parseNumLoose(manualRaw) : parseNumLoose(cfg.cubicRate);
+        if (!Number.isFinite(rate) || rate < 0) return { ok:false, err:"Η τιμή κυβικού δεν είναι σωστή." };
+        billableValue = totals.totalCubic;
+        billableLabel = `${nf3.format(billableValue)} m³`;
+
+        const rawCubicNet = totals.totalCubic * rate;
+        if (rawCubicNet < defaults.minCubicNet){
+          net = defaults.minCubicNet;
+          cubicMinimumApplied = true;
+          explain = `Κυβικό: ${nf3.format(totals.totalCubic)} m³ × € ${nf2.format(rate)} = ${euro(rawCubicNet)} → εφαρμόστηκε minimum ${euro(defaults.minCubicNet)}`;
+        } else {
+          net = rawCubicNet;
+          explain = `Χρέωση = ${nf3.format(totals.totalCubic)} m³ × € ${nf2.format(rate)}`;
+        }
+
+        rateInfo = `Τιμή κυβικού ${getTransportLabel()}: € ${nf2.format(rate)} • Minimum ${euro(defaults.minCubicNet)}`;
+      }
+
+      if (chargeType === "piece"){
+        const manualRaw = el("manualPieceRate").value.trim();
+        const rate = manualRaw !== "" ? parseNumLoose(manualRaw) : parseNumLoose(cfg.pieceRate);
+        if (!Number.isFinite(rate) || rate < 0) return { ok:false, err:"Η τιμή ανά τεμάχιο δεν είναι σωστή." };
+        billableValue = totals.totalQty;
+        billableLabel = `${totals.totalQty} τεμ.`;
+        net = totals.totalQty * rate;
+        explain = `Χρέωση = ${totals.totalQty} τεμ. × € ${nf2.format(rate)}`;
+        rateInfo = `Τιμή τεμαχίου ${getTransportLabel()}: € ${nf2.format(rate)}`;
+      }
+
+      const extras = addPickup ? getPickupFee(chargeType, customer) : 0;
+      const netBeforeVat = net + extras;
+      const vatRate = getVatRate();
+      const vatAmount = netBeforeVat * vatRate;
+      const gross = netBeforeVat + vatAmount;
+
+      return {
+        ok:true,
+        customerText,
+        customerId: customer?.id || null,
+        customerCode: customer?.code || "",
+        customerName: customer?.name || customerText,
+        chargeType,
+        transport,
+        payer,
+        addPickup,
+        customerRateInfo: rateInfo,
+        volDivisor: cfg.volDivisor,
+        items,
+        totalQty: totals.totalQty,
+        totalRealKg: totals.totalRealKg,
+        totalVolKg: totals.totalVolKg,
+        totalCubic: totals.totalCubic,
+        billableValue,
+        billableLabel,
+        baseNet: net,
+        extrasNet: extras,
+        net: netBeforeVat,
+        vatRate,
+        vatAmount,
+        gross,
+        explain,
+        cubicMinimumApplied
+      };
+    }
+
+    function setResultEmpty(){
+      ["kpiPieces","kpiKg","kpiVol","kpiCubic","kpiBillable","kpiChargeType","kpiNet","kpiGross",
+       "kpiPiecesSub","kpiKgSub","kpiVolSub","kpiCubicSub","kpiBillableSub","kpiChargeTypeSub",
+       "kpiNetSub","kpiGrossSub","summaryMain","summarySub","resultExplain","vatLabelTop"]
+      .forEach(id => el(id).textContent = "—");
+    }
+
+    function renderCalcResult(data){
+      if (!data?.ok){
+        setResultEmpty();
+        return;
+      }
+
+      el("kpiPieces").textContent = `${data.totalQty}`;
+      el("kpiPiecesSub").textContent = "Σύνολο τεμαχίων / κιβωτίων";
+
+      el("kpiKg").textContent = kgfmt(data.totalRealKg);
+      el("kpiKgSub").textContent = "Πραγματικό βάρος";
+
+      el("kpiVol").textContent = kgfmt(data.totalVolKg);
+      el("kpiVolSub").textContent = `Ογκομετρικό με διαιρέτη ${data.volDivisor}`;
+
+      el("kpiCubic").textContent = m3fmt(data.totalCubic);
+      el("kpiCubicSub").textContent = data.cubicMinimumApplied ? `Εφαρμόστηκε minimum ${euro(loadDefaultSettings().minCubicNet)}` : "Συνολικό κυβικό";
+
+      el("kpiBillable").textContent = data.billableLabel;
+      el("kpiBillableSub").textContent = data.explain;
+
+      el("kpiChargeType").textContent = `${chargeTypeLabel(data.chargeType)} • ${getTransportLabel()}`;
+      el("kpiChargeTypeSub").textContent = data.customerRateInfo || "—";
+
+      el("kpiNet").textContent = euro(data.net);
+      el("kpiNetSub").textContent = `Βάση: ${euro(data.baseNet)} • Extras: ${euro(data.extrasNet)}`;
+
+      el("kpiGross").textContent = euro(data.gross);
+      el("kpiGrossSub").textContent = `VAT ${Math.round(data.vatRate * 100)}% = ${euro(data.vatAmount)}`;
+
+      el("summaryMain").textContent = `${euro(data.gross)} (με VAT)`;
+      const extrasTxt = data.addPickup ? `Παραλαβή ${euro(data.extrasNet)}` : "Χωρίς extra";
+      el("summarySub").textContent = `${data.customerCode || data.customerName} • ${getTransportLabel()} • ${getPayerLabel()} • ${extrasTxt}`;
+
+      el("resultExplain").textContent = data.explain;
+      el("vatLabelTop").textContent = `VAT: ${Math.round(data.vatRate * 100)}%`;
+    }
+
+    function renderΣυμφωνίαerRatesPreview(customer, chargeType){
+      const defaults = loadDefaultSettings();
+      const renderMode = (mode) => {
+        const tbodyId = mode === "air" ? "defaultAirRatesBody" : "defaultSeaRatesBody";
+        const modeLabel = mode === "air" ? "Αεροπορικό" : "Πλοίο";
+        if (!customer || chargeType === "default"){
+          const cfg = getDefaultModeSettings(mode);
+          renderRatesTable(tbodyId, cfg.tiers, cfg.prices);
+          return `${modeLabel}: Default • extra/kg € ${nf2.format(cfg.extraPerKg)} • vol /${cfg.volDivisor} • κυβικό € ${nf2.format(cfg.cubicRate)}/m³`;
+        }
+        if (chargeType === "custom_tiers"){
+          const tiers = mode === "air" ? DEFAULT_AIR_TIERS : DEFAULT_SEA_TIERS;
+          const rates = mode === "air" ? (customer.customRatesAir || {}) : (customer.customRatesSea || {});
+          renderRatesTable(tbodyId, tiers, tiers.map(t => rates[String(t)] ?? null));
+          const extra = mode === "air" ? Number(customer.over50PerAir ?? defaults.air.extraPerKg) : Number(customer.over50PerSea ?? defaults.sea.extraPerKg);
+          const divisor = mode === "air" ? Number(customer.volDivisorAir || defaults.air.volDivisor) : Number(customer.volDivisorSea || defaults.sea.volDivisor);
+          return `${modeLabel}: Συμφωνία • extra/kg € ${nf2.format(extra)} • vol /${divisor}`;
+        }
+        if (chargeType === "cubic"){
+          const rate = mode === "air" ? customer.cubicRateAir : customer.cubicRateSea;
+          el(tbodyId).innerHTML = `<tr><td>${modeLabel}</td><td class="right mono">${rate != null ? nf2.format(Number(rate)) + " €/m³" : "—"}</td></tr>`;
+          return `${modeLabel}: Κυβικό • minimum ${euro(defaults.minCubicNet)}`;
+        }
+        if (chargeType === "piece"){
+          const rate = mode === "air" ? customer.pieceRateAir : customer.pieceRateSea;
+          el(tbodyId).innerHTML = `<tr><td>${modeLabel}</td><td class="right mono">${rate != null ? nf2.format(Number(rate)) + " €/τεμ." : "—"}</td></tr>`;
+          return `${modeLabel}: Ανά τεμάχιο`;
+        }
+        return modeLabel;
+      };
+      const airTxt = renderMode("air");
+      const seaTxt = renderMode("sea");
+      el("ratesSummaryLabel").textContent = chargeType === "default" || !customer ? "Τιμές default πελάτη" : chargeTypeLabel(chargeType);
+      return `${airTxt} • ${seaTxt}`;
+    }
+
+
+    function setCalcChargeModeButtons(customer){
+      const primary = getPrimaryChargeType(customer);
+      const resolved = getResolvedChargeType(customer);
+
+      el("calcTypeDefaultBtn").classList.toggle("active", resolved === "default");
+      el("calcTypeCubicBtn").classList.toggle("active", resolved === "cubic");
+      el("calcTypePieceBtn").classList.toggle("active", resolved === "piece");
+      el("calcTypeCustomBtn").classList.toggle("active", resolved === "custom_tiers");
+      el("calcTypeResetBtn").classList.toggle("active", calcChargeOverride == null);
+
+      const sourceLabel = calcChargeOverride == null ? `Προεπιλογή πελάτη: ${chargeTypeLabel(primary)}` : `Προσωρινή επιλογή: ${chargeTypeLabel(resolved)}`;
+      el("calcChargeModeHint").textContent = customer
+        ? `${sourceLabel}. Μπορείς να το αλλάξεις μόνο για αυτόν τον υπολογισμό.`
+        : "Χωρίς πελάτη επιλεγμένο, το πρόγραμμα χρησιμοποιεί Default.";
+    }
+
+    function setCalcChargeOverride(type){
+      calcChargeOverride = type;
+      syncCalcΣυμφωνίαerInfo();
+    }
+
+    function syncCalcΣυμφωνίαerInfo(){
+      const customer = getSelectedΣυμφωνίαer();
+      const primaryChargeType = getPrimaryChargeType(customer);
+      const chargeType = getResolvedChargeType(customer);
+      setCalcChargeModeButtons(customer);
+
+      if (customer){
+        const displayName = customerDisplayName(customer);
+        if (el("calcCustomer").value.trim() !== displayName) {
+          el("calcCustomer").value = displayName;
+        }
+      }
+
+      if (!customer){
+        el("customerChargeTypeLine").textContent = "Δεν βρέθηκε αποθηκευμένος πελάτης. Θα χρησιμοποιηθεί Default τιμοκατάλογος.";
+        el("customerRateDetails").innerHTML = `${chargeTypePill("default")} <span class="sub">Χωρίς αποθηκευμένο προφίλ</span>`;
+        el("quickInfoLine1").textContent = `Μεταφορά: ${getTransportLabel()} • Πληρωτής: ${getPayerLabel()}`;
+        el("quickInfoLine2").textContent = renderΣυμφωνίαerRatesPreview(null, "default");
+        el("manualCubicWrap").classList.add("hidden");
+        el("manualPieceWrap").classList.add("hidden");
+      } else {
+        el("customerChargeTypeLine").textContent = `Πελάτης: ${customerDisplayName(customer)} • Κύριος τρόπος: ${chargeTypeLabel(primaryChargeType)}${calcChargeOverride ? ` • Προσωρινά: ${chargeTypeLabel(chargeType)}` : ''}`;
+        el("customerRateDetails").innerHTML = `${chargeTypePill(chargeType)} <span class="sub">Αεροπορικό: ${esc(customerModePreview(customer,"air"))} • Πλοίο: ${esc(customerModePreview(customer,"sea"))}</span>`;
+        el("quickInfoLine1").textContent = `Μεταφορά: ${getTransportLabel()} • Πληρωτής: ${getPayerLabel()}`;
+        el("quickInfoLine2").textContent = renderΣυμφωνίαerRatesPreview(customer, chargeType);
+        el("manualCubicWrap").classList.toggle("hidden", chargeType !== "cubic");
+        el("manualPieceWrap").classList.toggle("hidden", chargeType !== "piece");
+      }
+
+      const res = computeCalculation();
+      if (res.ok) renderCalcResult(res);
+      else renderCalcResult(null);
+
+      [...el("itemsBody").querySelectorAll("tr")].forEach(updateSingleRowPreview);
+    }
+
+    function hardCompute(autoSave = false){
+      const res = computeCalculation();
+      if (!res.ok){
+        renderCalcResult(null);
+        return showToast("calcToast", res.err, "bad");
+      }
+      renderCalcResult(res);
+      if (autoSave) saveCurrentCalculation();
+      else showToast("calcToast", "Έγινε υπολογισμός ✅", "ok");
+      return res;
+    }
+
+    function resetCalcForm(){
+      editingRecordId = null;
+      el("calcΣυμφωνίαer").value = "";
+      payer = "sender";
+      transport = "air";
+      addPickup = false;
+      calcChargeOverride = null;
+
+      el("payerSenderBtn").classList.add("active");
+      el("payerReceiverBtn").classList.remove("active");
+      el("transportAirBtn").classList.add("active");
+      el("transportSeaBtn").classList.remove("active");
+      el("pickupBtn").classList.remove("active");
+      refreshDefaultUiTexts();
+
+      el("manualCubicRate").value = "";
+      el("manualPieceRate").value = "";
+      renderItems([{ L:"", W:"", H:"", kg:"", qty:1 }]);
+      setResultEmpty();
+      el("calcModeLabel").textContent = "Mode: Νέα εγγραφή";
+      el("cancelCalcEditBtn").style.display = "none";
+      syncCalcΣυμφωνίαerInfo();
+    }
+
+    function saveCurrentCalculation(){
+      const res = computeCalculation();
+      if (!res.ok){
+        renderCalcResult(null);
+        return showToast("calcToast", res.err, "bad");
+      }
+
+      let records = loadRecords();
+      const payload = {
+        version: APP_VERSION,
+        customerText: res.customerText,
+        customerId: res.customerId,
+        customerCode: res.customerCode,
+        customerName: res.customerName,
+        chargeType: res.chargeType,
+        calcChargeOverride: calcChargeOverride,
+        transport: res.transport,
+        payer: res.payer,
+        addPickup: res.addPickup,
+        volDivisor: res.volDivisor,
+        items: res.items.map(x => ({ ...x })),
+        totalQty: res.totalQty,
+        totalRealKg: res.totalRealKg,
+        totalVolKg: res.totalVolKg,
+        totalCubic: res.totalCubic,
+        billableValue: res.billableValue,
+        billableLabel: res.billableLabel,
+        baseNet: res.baseNet,
+        extrasNet: res.extrasNet,
+        net: res.net,
+        vatRate: res.vatRate,
+        vatAmount: res.vatAmount,
+        gross: res.gross,
+        explain: res.explain,
+        cubicMinimumApplied: res.cubicMinimumApplied,
+        customerRateInfo: res.customerRateInfo,
+        manualCubicRate: el("manualCubicRate").value.trim() === "" ? null : parseNumLoose(el("manualCubicRate").value.trim()),
+        manualPieceRate: el("manualPieceRate").value.trim() === "" ? null : parseNumLoose(el("manualPieceRate").value.trim())
+      };
+
+      if (editingRecordId){
+        const idx = records.findIndex(r => r.id === editingRecordId);
+        if (idx === -1) return showToast("calcToast", "Η εγγραφή για edit δεν βρέθηκε.", "bad");
+        records[idx] = { ...records[idx], ...payload, edited: true, editedAt: nowISO() };
+        saveRecords(records);
+        renderHistory();
+        showToast("calcToast", "Έγινε update εγγραφής ✅", "ok");
+        resetCalcForm();
+        return;
+      }
+
+      records.unshift({
+        id: String(Date.now()),
+        createdAt: nowISO(),
+        edited: false,
+        editedAt: null,
+        ...payload
+      });
+      saveRecords(records);
+      renderHistory();
+      showToast("calcToast", "Η εγγραφή αποθηκεύτηκε ✅", "ok");
+    }
+
+    function startEditRecord(id){
+      const r = loadRecords().find(x => x.id === id);
+      if (!r) return showToast("calcToast", "Η εγγραφή δεν βρέθηκε.", "bad");
+
+      editingRecordId = r.id;
+      el("calcΣυμφωνίαer").value = r.customerCode || r.customerName || r.customerText || "";
+
+      payer = r.payer === "receiver" ? "receiver" : "sender";
+      transport = r.transport === "sea" ? "sea" : "air";
+      addPickup = !!r.addPickup;
+      calcChargeOverride = r.calcChargeOverride || r.chargeType || null;
+
+      el("payerSenderBtn").classList.toggle("active", payer === "sender");
+      el("payerReceiverBtn").classList.toggle("active", payer === "receiver");
+      el("transportAirBtn").classList.toggle("active", transport === "air");
+      el("transportSeaBtn").classList.toggle("active", transport === "sea");
+      el("pickupBtn").classList.toggle("active", addPickup);
+      refreshDefaultUiTexts();
+
+      el("manualCubicRate").value = r.manualCubicRate ?? "";
+      el("manualPieceRate").value = r.manualPieceRate ?? "";
+      renderItems(r.items || [{ L:"", W:"", H:"", kg:"", qty:1 }]);
+
+      el("calcModeLabel").textContent = "Mode: Edit εγγραφής";
+      el("cancelCalcEditBtn").style.display = "inline-flex";
+      setTab("calcTab");
+      syncCalcΣυμφωνίαerInfo();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function deleteRecord(id){
+      const records = loadRecords();
+      const r = records.find(x => x.id === id);
+      if (!r) return;
+      if (!confirm(`Να διαγράψω την εγγραφή του πελάτη "${r.customerCode || r.customerName || r.customerText}";`)) return;
+      saveRecords(records.filter(x => x.id !== id));
+      if (editingRecordId === id) resetCalcForm();
+      renderHistory();
+      showToast("calcToast", "Η εγγραφή διαγράφηκε.", "ok");
+    }
+
+    async function copyCurrentCalculation(){
+      const res = computeCalculation();
+      if (!res.ok) return showToast("calcToast", res.err, "bad");
+      const lines = [
+        `Kronos Express RateCalc ${APP_VERSION}`,
+        `Πελάτης: ${res.customerCode || res.customerName || res.customerText}`,
+        `Μεταφορά: ${getTransportLabel()}`,
+        `Πληρωτής: ${getPayerLabel()}`,
+        `Τύπος χρέωσης: ${chargeTypeLabel(res.chargeType)}`,
+        `Σύνολο τεμαχίων: ${res.totalQty}`,
+        `Συνολικό πραγματικό βάρος: ${kgfmt(res.totalRealKg)}`,
+        `Συνολικό ογκομετρικό: ${kgfmt(res.totalVolKg)}`,
+        `Συνολικό κυβικό: ${m3fmt(res.totalCubic)}`,
+        `Χρεώσιμο: ${res.billableLabel}`,
+        `Βάση χωρίς extras: ${euro(res.baseNet)}`,
+        `Extras: ${euro(res.extrasNet)}`,
+        `Καθαρή αξία: ${euro(res.net)}`,
+        `VAT ${Math.round(res.vatRate*100)}%: ${euro(res.vatAmount)}`,
+        `Σύνολο: ${euro(res.gross)}`
+      ].join("\n");
+
+      try{
+        await navigator.clipboard.writeText(lines);
+        showToast("calcToast", "Αντιγράφηκε ✅", "ok");
+      } catch {
+        showToast("calcToast", "Ο browser μπλόκαρε το clipboard.", "bad");
+      }
+    }
+
+    function historyRecordMatchesFilters(r){
+      const q = el("historyFilterΣυμφωνίαer").value.trim().toLowerCase();
+      const month = el("historyFilterMonth").value.trim();
+      const type = el("historyFilterChargeType").value;
+      const tr = el("historyFilterTransport").value;
+
+      const txt = `${r.customerCode || ""} ${r.customerName || ""} ${r.customerText || ""}`.toLowerCase();
+      return (!q || txt.includes(q))
+        && (!month || ymFromISO(r.createdAt) === month)
+        && (!type || r.chargeType === type)
+        && (!tr || r.transport === tr);
+    }
+
+    function renderHistory(){
+      const rows = loadRecords().filter(historyRecordMatchesFilters);
+      const grossSum = rows.reduce((a,r)=>a + (Number(r.gross)||0), 0);
+      const netSum = rows.reduce((a,r)=>a + (Number(r.net)||0), 0);
+      const totalPieces = rows.reduce((a,r)=>a + (Number(r.totalQty)||0), 0);
+
+      el("historyTotalsLine").textContent = `${euro(grossSum)} • ${rows.length} εγγραφές`;
+      el("historyTotalsSub").textContent = `Net: ${euro(netSum)} • Τεμάχια: ${totalPieces}`;
+
+      if (!rows.length){
+        el("historyBody").innerHTML = `<tr><td colspan="13" class="muted">Δεν υπάρχουν εγγραφές για αυτά τα φίλτρα.</td></tr>`;
+        return;
+      }
+
+      el("historyBody").innerHTML = rows.map(r => {
+        const flags = [
+          chargeTypePill(r.chargeType),
+          r.transport === "air" ? `<span class="pill blue">Αεροπορικό</span>` : `<span class="pill warn">Πλοίο</span>`,
+          r.addPickup ? `<span class="pill ok">Παραλαβή</span>` : "",
+          r.cubicMinimumApplied ? `<span class="pill warn">Min Cubic</span>` : "",
+          r.edited ? `<span class="pill bad">Edited</span>` : ""
+        ].filter(Boolean).join(" ");
+
+        return `
+          <tr title="${esc(r.edited ? `EditedAt: ${r.editedAt || ""}` : "")}">
+            <td class="mono">${esc(r.createdAt || "")}</td>
+            <td>${esc(r.customerCode || r.customerName || r.customerText || "")}</td>
+            <td>${r.transport === "air" ? "Αεροπορικό" : "Πλοίο"}</td>
+            <td>${r.payer === "sender" ? "Αποστολέας" : "Παραλήπτης"}</td>
+            <td>${chargeTypeLabel(r.chargeType)}</td>
+            <td class="right mono">${Number(r.totalQty || 0)}</td>
+            <td class="right mono">${nf2.format(Number(r.totalRealKg || 0))}</td>
+            <td class="right mono">${nf2.format(Number(r.totalVolKg || 0))}</td>
+            <td class="right mono">${nf3.format(Number(r.totalCubic || 0))}</td>
+            <td class="right mono">${nf2.format(Number(r.net || 0))}</td>
+            <td class="right mono">${nf2.format(Number(r.gross || 0))}</td>
+            <td>${flags}</td>
+            <td>
+              <div class="miniActions">
+                <button class="miniBtn blue" type="button" onclick="window.__editRecord('${r.id}')">Edit</button>
+                <button class="miniBtn danger" type="button" onclick="window.__deleteRecord('${r.id}')">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function csvVal(v){
+      const s = String(v ?? "");
+      return `"${s.replace(/"/g,'""')}"`;
+    }
+
+    function exportHistoryCsv(){
+      const rows = loadRecords().filter(historyRecordMatchesFilters);
+      if (!rows.length) return showToast("calcToast", "Δεν υπάρχουν εγγραφές για export.", "bad");
+
+      const header = [
+        "version","createdAt","customerCode","customerName","transport","payer","chargeType",
+        "addPickup","totalQty","totalRealKg","totalVolKg","totalCubic","billableLabel",
+        "baseNet","extrasNet","net","vatAmount","gross","cubicMinimumApplied","edited","editedAt"
+      ];
+      const csv = [header.join(","), ...rows.map(r => header.map(k => csvVal(r[k])).join(","))].join("\n");
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `KronosExpressRateCalc_${APP_VERSION}_${currentMonthValue()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast("calcToast", "Export CSV έτοιμο ✅", "ok");
+    }
+
+    function backupJson(){
+      const payload = {
+        app: "Kronos Express RateCalc",
+        version: APP_VERSION,
+        exportedAt: nowISO(),
+        customers: loadΣυμφωνίαers(),
+        records: loadRecords()
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `KronosExpressRateCalc_Backup_${APP_VERSION}_${payload.exportedAt.replace(/[: ]/g,"-")}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast("calcToast", "Backup JSON έτοιμο ✅", "ok");
+    }
+
+    function mergeΣυμφωνίαers(existing, incoming){
+      const map = new Map();
+      for (const c of existing) map.set(String(c.id), c);
+      for (const c of incoming){
+        const sameCode = [...map.values()].find(x => String(x.code || "").trim().toLowerCase() === String(c.code || "").trim().toLowerCase());
+        if (sameCode) map.set(sameCode.id, { ...sameCode, ...c, id: sameCode.id });
+        else map.set(String(c.id || Date.now() + Math.random()), { ...c, id: String(c.id || Date.now() + Math.random()) });
+      }
+      return Array.from(map.values()).sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""), "el"));
+    }
+
+    function mergeRecords(existing, incoming){
+      const map = new Map();
+      for (const r of existing) map.set(String(r.id), r);
+      for (const r of incoming) map.set(String(r.id || Date.now() + Math.random()), { ...r, id: String(r.id || Date.now() + Math.random()) });
+      return Array.from(map.values()).sort((a,b)=>String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+    }
+
+    function importJsonFile(file){
+      const reader = new FileReader();
+      reader.onload = () => {
+        try{
+          const data = JSON.parse(String(reader.result || "{}"));
+          const inΣυμφωνίαers = Array.isArray(data.customers) ? data.customers : [];
+          const inRecords = Array.isArray(data.records) ? data.records : [];
+
+          const replace = confirm("Import: πάτα OK για REPLACE ή Cancel για MERGE.");
+          if (replace){
+            saveΣυμφωνίαers(inΣυμφωνίαers);
+            saveRecords(inRecords);
+            showToast("calcToast", "Import REPLACE ✅", "ok");
+          } else {
+            saveΣυμφωνίαers(mergeΣυμφωνίαers(loadΣυμφωνίαers(), inΣυμφωνίαers));
+            saveRecords(mergeRecords(loadRecords(), inRecords));
+            showToast("calcToast", "Import MERGE ✅", "ok");
+          }
+
+          renderΣυμφωνίαersDatalist();
+          renderAdminΣυμφωνίαers();
+          renderHistory();
+          syncCalcΣυμφωνίαerInfo();
+        } catch {
+          showToast("calcToast", "Δεν μπόρεσα να διαβάσω το JSON.", "bad");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function clearHistory(){
+      if (!confirm("ΣΙΓΟΥΡΑ; Θα διαγραφεί όλο το ιστορικό.")) return;
+      saveRecords([]);
+      renderHistory();
+      if (editingRecordId) resetCalcForm();
+      showToast("calcToast", "Το ιστορικό καθαρίστηκε.", "ok");
+    }
+
+    window.__editΣυμφωνίαer = startEditΣυμφωνίαer;
+    window.__deleteΣυμφωνίαer = deleteΣυμφωνίαer;
+    window.__editRecord = startEditRecord;
+    window.__deleteRecord = deleteRecord;
+
+    el("adminTypeDefault").addEventListener("click", () => setAdminChargeType("default"));
+    el("adminTypeCustom").addEventListener("click", () => setAdminChargeType("custom_tiers"));
+    el("adminTypeCubic").addEventListener("click", () => setAdminChargeType("cubic"));
+    el("adminTypePiece").addEventListener("click", () => setAdminChargeType("piece"));
+    el("adminActiveBtn").addEventListener("click", () => setAdminActive(!adminActive));
+
+    el("saveΣυμφωνίαerBtn").addEventListener("click", saveΣυμφωνίαerFromAdmin);
+    el("deleteΣυμφωνίαerBtn").addEventListener("click", () => {
+      if (!editingΣυμφωνίαerId) return showToast("adminToast", "Δεν είσαι σε edit πελάτη.", "bad");
+      deleteΣυμφωνίαer(editingΣυμφωνίαerId);
+    });
+    el("cancelAdminEditBtn").addEventListener("click", () => {
+      resetAdminForm();
+      showToast("adminToast", "Έφυγες από edit πελάτη.", "ok");
+    });
+    el("resetAdminBtn").addEventListener("click", resetAdminForm);
+    el("saveDefaultSettingsBtn").addEventListener("click", saveSystemDefaultsFromAdmin);
+
+    function openModal(id){
+      const modal = el(id);
+      if (!modal) return;
+      modal.classList.add("show");
+      modal.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+    }
+    function closeModal(id){
+      const modal = el(id);
+      if (!modal) return;
+      modal.classList.remove("show");
+      modal.setAttribute("aria-hidden", "true");
+      if (!["defaultCatalogModal","customCatalogModal"].some(mid => el(mid)?.classList.contains("show"))) {
+        document.body.style.overflow = "";
+      }
+    }
+
+    el("toggleDefaultCatalogBtn").addEventListener("click", () => {
+      renderDefaultRatesTable();
+      makeDefaultRatesEditable();
+      openModal("defaultCatalogModal");
+    });
+    el("closeDefaultCatalogBtn").addEventListener("click", () => closeModal("defaultCatalogModal"));
+    el("openCustomCatalogBtn").addEventListener("click", () => openModal("customCatalogModal"));
+    el("closeΣυμφωνίαCatalogBtn").addEventListener("click", () => closeModal("customCatalogModal"));
+
+    ["defaultCatalogModal","customCatalogModal"].forEach(id => {
+      el(id).addEventListener("click", (e) => {
+        if (e.target === el(id)) closeModal(id);
+      });
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        closeModal("defaultCatalogModal");
+        closeModal("customCatalogModal");
+      }
+    });
+
+    el("adminFilter").addEventListener("input", renderAdminΣυμφωνίαers);
+    el("adminTypeFilter").addEventListener("input", renderAdminΣυμφωνίαers);
+
+    el("calcΣυμφωνίαer").addEventListener("input", () => { calcChargeOverride = null; syncCalcΣυμφωνίαerInfo(); });
+        function handleCalcCustomerInput(){
+      calcChargeOverride = null;
+      const customer = getSelectedCustomer();
+      if (customer){
+        el("calcCustomer").value = customerDisplayName(customer);
+      }
+      syncCalcΣυμφωνίαerInfo();
+    }
+    el("calcΣυμφωνίαer").addEventListener("input", handleCalcCustomerInput);
+    el("calcΣυμφωνίαer").addEventListener("change", handleCalcCustomerInput);
+
+    el("transportAirBtn").addEventListener("click", () => setTransport("air"));
+    el("transportSeaBtn").addEventListener("click", () => setTransport("sea"));
+    el("pickupBtn").addEventListener("click", () => setPickup(!addPickup));
+    el("calcTypeDefaultBtn").addEventListener("click", () => setCalcChargeOverride("default"));
+    el("calcTypeCubicBtn").addEventListener("click", () => setCalcChargeOverride("cubic"));
+    el("calcTypePieceBtn").addEventListener("click", () => setCalcChargeOverride("piece"));
+    el("calcTypeCustomBtn").addEventListener("click", () => setCalcChargeOverride("custom_tiers"));
+    el("calcTypeResetBtn").addEventListener("click", () => { calcChargeOverride = null; syncCalcΣυμφωνίαerInfo(); });
+
+    el("payerSenderBtn").addEventListener("click", () => {
+      payer = "sender";
+      el("payerSenderBtn").classList.add("active");
+      el("payerReceiverBtn").classList.remove("active");
+      syncCalcΣυμφωνίαerInfo();
+    });
+    el("payerReceiverBtn").addEventListener("click", () => {
+      payer = "receiver";
+      el("payerSenderBtn").classList.remove("active");
+      el("payerReceiverBtn").classList.add("active");
+      syncCalcΣυμφωνίαerInfo();
+    });
+
+    el("addItemBtn").addEventListener("click", addItemRow);
+    el("clearItemsBtn").addEventListener("click", clearItems);
+
+    el("manualCubicRate").addEventListener("input", syncCalcΣυμφωνίαerInfo);
+    el("manualPieceRate").addEventListener("input", syncCalcΣυμφωνίαerInfo);
+
+    el("calcBtn").addEventListener("click", () => hardCompute(true));
+    el("calcOnlyBtn").addEventListener("click", () => hardCompute(false));
+    el("copyCalcBtn").addEventListener("click", copyCurrentCalculation);
+    el("cancelCalcEditBtn").addEventListener("click", () => {
+      resetCalcForm();
+      showToast("calcToast", "Έφυγες από edit εγγραφής.", "ok");
+    });
+    el("resetCalcBtn").addEventListener("click", () => {
+      resetCalcForm();
+      showToast("calcToast", "Η φόρμα καθαρίστηκε.", "ok");
+    });
+
+    el("historyFilterΣυμφωνίαer").addEventListener("input", renderHistory);
+    el("historyFilterMonth").addEventListener("input", renderHistory);
+    el("historyFilterChargeType").addEventListener("input", renderHistory);
+    el("historyFilterTransport").addEventListener("input", renderHistory);
+
+    el("exportCsvBtn").addEventListener("click", exportHistoryCsv);
+    el("backupBtn").addEventListener("click", backupJson);
+    el("importBtn").addEventListener("click", () => el("importFile").click());
+    el("importFile").addEventListener("change", (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      importJsonFile(file);
+      e.target.value = "";
+    });
+    el("clearHistoryBtn").addEventListener("click", clearHistory);
+
+    function makeDefaultRatesEditable(){
+      const defaults = loadDefaultSettings();
+      const renderEditable = (bodyId, tiers, prices) => {
+        el(bodyId).innerHTML = tiers.map((tier,i)=>`<tr><td>${tier} kg</td><td class="right"><input type="number" min="0" step="0.01" value="${prices[i]}" /></td></tr>`).join("");
+      };
+      renderEditable("adminDefaultRatesAirBody", defaults.air.tiers, defaults.air.prices);
+      renderEditable("adminDefaultRatesSeaBody", defaults.sea.tiers, defaults.sea.prices);
+    }
+
+    function saveSystemDefaultsFromAdmin(){
+      const current = loadDefaultSettings();
+      const getPrices = (bodyId, fallback) => [...el(bodyId).querySelectorAll("input")].map((inp, i) => {
+        const v = Number(inp.value);
+        return Number.isFinite(v) && v >= 0 ? v : fallback[i];
+      });
+      const next = {
+        pickupFee:Number(el("adminDefaultPickupFee").value),
+        pickupFeeCubic:Number(el("adminDefaultPickupFeeCubic").value),
+        minCubicNet:Number(el("adminDefaultMinCubicNet").value),
+        air:{
+          tiers:[...DEFAULT_AIR_TIERS],
+          prices:getPrices("adminDefaultRatesAirBody", current.air.prices),
+          cubicRate:Number(el("adminDefaultCubicRateAir").value),
+          extraPerKg:Number(el("adminDefaultExtraPerAir").value),
+          volDivisor:Number(el("adminDefaultVolDivisorAir").value)
+        },
+        sea:{
+          tiers:[...DEFAULT_SEA_TIERS],
+          prices:getPrices("adminDefaultRatesSeaBody", current.sea.prices),
+          cubicRate:Number(el("adminDefaultCubicRateSea").value),
+          extraPerKg:Number(el("adminDefaultExtraPerSea").value),
+          volDivisor:Number(el("adminDefaultVolDivisorSea").value)
+        }
+      };
+      const ok = [next.pickupFee,next.pickupFeeCubic,next.minCubicNet,next.air.cubicRate,next.air.extraPerKg,next.air.volDivisor,next.sea.cubicRate,next.sea.extraPerKg,next.sea.volDivisor].every(v => Number.isFinite(v) && v >= 0) && next.air.volDivisor > 0 && next.sea.volDivisor > 0;
+      if (!ok) return showToast("adminToast", "Έλεγξε τις default ρυθμίσεις.", "bad");
+      saveDefaultSettings(next);
+      renderDefaultRatesTable();
+      makeDefaultRatesEditable();
+      syncCalcΣυμφωνίαerInfo();
+      showToast("adminToast", "Οι default ρυθμίσεις αποθηκεύτηκαν ✅", "ok");
+    }
+
+    function seedDemoDataIfEmpty(){
+      if (loadΣυμφωνίαers().length) return;
+      saveΣυμφωνίαers([
+        {
+          id:"c1",
+          code:"DEF001",
+          name:"Default Demo",
+          active:true,
+          chargeType:"default",
+          notes:"Default rates",
+          createdAt:nowISO(),
+          updatedAt:nowISO()
+        },
+        {
+          id:"c2",
+          code:"CUB001",
+          name:"Cubic Demo",
+          active:true,
+          chargeType:"cubic",
+          cubicRateAir:65,
+          cubicRateSea:55,
+          notes:"Κυβικό με minimum €55 • Παραλαβή κυβικό €25",
+          createdAt:nowISO(),
+          updatedAt:nowISO()
+        },
+        {
+          id:"c3",
+          code:"PCE001",
+          name:"Piece Demo",
+          active:true,
+          chargeType:"piece",
+          pieceRateAir:4.5,
+          pieceRateSea:3.8,
+          notes:"Ανά τεμάχιο",
+          createdAt:nowISO(),
+          updatedAt:nowISO()
+        }
+      ]);
+    }
+
+    function init(){
+      renderDefaultRatesTable();
+      makeDefaultRatesEditable();
+      renderAdminΣυμφωνίαRatesInputs("adminΣυμφωνίαRatesAirBody", DEFAULT_AIR_TIERS, {});
+      renderAdminΣυμφωνίαRatesInputs("adminΣυμφωνίαRatesSeaBody", DEFAULT_SEA_TIERS, {});
+      seedDemoDataIfEmpty();
+      renderΣυμφωνίαersDatalist();
+      renderAdminΣυμφωνίαers();
+      renderItems([{ L:"", W:"", H:"", kg:"", qty:1 }]);
+      el("historyFilterMonth").value = currentMonthValue();
+      renderHistory();
+      resetAdminForm();
+      resetCalcForm();
+    }
+
+    bootstrapFirebase();
+  </script>
+
+</body>
+</html>
