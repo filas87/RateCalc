@@ -475,6 +475,58 @@
       display:inline-flex;align-items:center;gap:8px;
     }
 
+  
+    .pickerOverlay{
+      position:fixed;inset:0;z-index:10001;
+      background:rgba(5,8,18,.78);
+      backdrop-filter:blur(8px);
+      display:none;align-items:center;justify-content:center;
+      padding:18px;
+    }
+    .pickerOverlay.show{display:flex}
+    .pickerCard{
+      width:min(760px,100%);max-height:88vh;overflow:auto;
+      border:1px solid var(--stroke2);
+      border-radius:22px;
+      background:linear-gradient(180deg,rgba(20,28,52,.96),rgba(9,13,26,.98));
+      box-shadow:0 24px 80px rgba(0,0,0,.5);
+    }
+    .pickerHeader{
+      position:sticky;top:0;z-index:2;
+      display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+      padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.08);
+      background:rgba(8,12,24,.94);backdrop-filter:blur(10px);
+    }
+    .pickerBody{padding:16px}
+    .pickerSearch{
+      margin-bottom:12px;
+    }
+    .pickerList{
+      display:grid;gap:10px;
+    }
+    .pickerItem{
+      width:100%;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.05);
+      color:rgba(255,255,255,.94);
+      border-radius:16px;
+      padding:12px 14px;
+      text-align:left;
+      cursor:pointer;
+      transition:.18s ease;
+    }
+    .pickerItem:hover{
+      transform:translateY(-1px);
+      border-color:rgba(102,140,255,.45);
+      background:rgba(102,140,255,.09);
+    }
+    .pickerItem .title{
+      font-size:14px;font-weight:900;
+    }
+    .pickerItem .sub{
+      margin-top:4px;
+    }
+
   </style>
 </head>
 <body>
@@ -540,6 +592,9 @@
                   <div class="suffix">saved</div>
                 </div>
                 <datalist id="customersList"></datalist>
+                <div style="margin-top:8px; display:flex;">
+                  <button class="miniBtn" id="clearCustomerFormBtn" type="button">Καθαρισμός φόρμας</button>
+                </div>
               </div>
 
               <div>
@@ -1228,6 +1283,26 @@
     </div>
   </div>
 
+
+
+  <div id="customerPickerModal" class="pickerOverlay" aria-hidden="true">
+    <div class="pickerCard">
+      <div class="pickerHeader">
+        <div>
+          <h2 style="margin:0;font-size:18px;">Επιλογή πελάτη</h2>
+          <div class="sub">Διάλεξε πελάτη από τη λίστα και θα συμπληρωθεί αυτόματα.</div>
+        </div>
+        <button class="btn danger" id="closeCustomerPickerBtn" type="button">✖ Κλείσιμο</button>
+      </div>
+      <div class="pickerBody">
+        <div class="field pickerSearch">
+          <div class="icon">🔎</div>
+          <input id="customerPickerSearch" placeholder="Αναζήτηση με κωδικό ή όνομα" autocomplete="off" />
+        </div>
+        <div id="customerPickerList" class="pickerList"></div>
+      </div>
+    </div>
+  </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -2829,6 +2904,54 @@
       showToast("calcToast", "Το ιστορικό καθαρίστηκε.", "ok");
     }
 
+
+    function openCustomerPicker(){
+      renderCustomerPickerList();
+      el("customerPickerModal").classList.add("show");
+      el("customerPickerModal").setAttribute("aria-hidden", "false");
+      el("customerPickerSearch").value = "";
+      setTimeout(() => el("customerPickerSearch").focus(), 50);
+    }
+
+    function closeCustomerPicker(){
+      el("customerPickerModal").classList.remove("show");
+      el("customerPickerModal").setAttribute("aria-hidden", "true");
+    }
+
+    function renderCustomerPickerList(){
+      const q = (el("customerPickerSearch").value || "").trim().toLowerCase();
+      const rows = loadΣυμφωνίαers()
+        .filter(c => c.active !== false)
+        .filter(c => {
+          const txt = `${c.code || ""} ${c.name || ""}`.toLowerCase();
+          return !q || txt.includes(q);
+        })
+        .sort((a,b)=>customerDisplayName(a).localeCompare(customerDisplayName(b), "el"));
+
+      if (!rows.length){
+        el("customerPickerList").innerHTML = '<div class="sub">Δεν βρέθηκαν πελάτες.</div>';
+        return;
+      }
+
+      el("customerPickerList").innerHTML = rows.map(c => `
+        <button type="button" class="pickerItem" data-customer-id="${esc(c.id)}">
+          <div class="title">${esc(customerDisplayName(c))}</div>
+          <div class="sub">Κύριος τρόπος: ${esc(chargeTypeLabel(getPrimaryChargeType(c)))} • Πληρωτής: ${esc((c.defaultPayer || "sender") === "receiver" ? "Παραλήπτης" : "Αποστολέας")}</div>
+        </button>
+      `).join("");
+
+      el("customerPickerList").querySelectorAll(".pickerItem").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.getAttribute("data-customer-id");
+          const customer = loadΣυμφωνίαers().find(x => String(x.id) === String(id));
+          if (!customer) return;
+          el("calcCustomer").value = customerDisplayName(customer);
+          closeCustomerPicker();
+          handleCalcCustomerInput();
+        });
+      });
+    }
+
     window.__editΣυμφωνίαer = startEditΣυμφωνίαer;
     window.__deleteΣυμφωνίαer = deleteΣυμφωνίαer;
     window.__editRecord = startEditRecord;
@@ -2891,6 +3014,7 @@
       if (e.key === "Escape") {
         closeModal("defaultCatalogModal");
         closeModal("customCatalogModal");
+        closeCustomerPicker();
       }
     });
 
@@ -2954,6 +3078,16 @@
     el("resetCalcBtn").addEventListener("click", () => {
       resetCalcForm();
       showToast("calcToast", "Η φόρμα καθαρίστηκε.", "ok");
+    });
+    el("clearCustomerFormBtn").addEventListener("click", () => {
+      resetCalcForm();
+      showToast("calcToast", "Η φόρμα καθαρίστηκε.", "ok");
+    });
+    el("openCustomerPickerBtn").addEventListener("click", openCustomerPicker);
+    el("closeCustomerPickerBtn").addEventListener("click", closeCustomerPicker);
+    el("customerPickerSearch").addEventListener("input", renderCustomerPickerList);
+    el("customerPickerModal").addEventListener("click", (e) => {
+      if (e.target === el("customerPickerModal")) closeCustomerPicker();
     });
 
     el("historyFilterΣυμφωνίαer").addEventListener("input", renderHistory);
