@@ -2486,12 +2486,12 @@
 
     function setCalcChargeModeButtons(customer){
       if (!customer){
-        el("calcTypeDefaultBtn").classList.remove("active");
+        el("calcTypeDefaultBtn").classList.add("active");
         el("calcTypeCubicBtn").classList.remove("active");
         el("calcTypePieceBtn").classList.remove("active");
         el("calcTypeCustomBtn").classList.remove("active");
-        el("calcTypeResetBtn").classList.remove("active");
-        el("calcChargeModeHint").textContent = "Διάλεξε πελάτη για να εμφανιστεί το είδος χρέωσης.";
+        el("calcTypeResetBtn").classList.add("active");
+        el("calcChargeModeHint").textContent = "Δεν υπάρχει αποθηκευμένος πελάτης. Χρησιμοποιείται Default τιμοκατάλογος.";
         return;
       }
 
