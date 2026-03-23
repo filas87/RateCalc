@@ -545,7 +545,7 @@
               <div>
                 <label>Ποιος πληρώνει</label>
                 <div class="seg">
-                  <button id="payerSenderBtn" type="button" class="active">Αποστολέας (VAT 24%)</button>
+                  <button id="payerSenderBtn" type="button">Αποστολέας (VAT 24%)</button>
                   <button id="payerReceiverBtn" type="button">Παραλήπτης (VAT 19%)</button>
                 </div>
               </div>
@@ -557,7 +557,7 @@
               <div>
                 <label>Τρόπος μεταφοράς</label>
                 <div class="seg">
-                  <button id="transportAirBtn" type="button" class="active">Αεροπορικό</button>
+                  <button id="transportAirBtn" type="button">Αεροπορικό</button>
                   <button id="transportSeaBtn" type="button">Πλοίο</button>
                 </div>
                 <div class="sub" style="margin-top:6px;" id="transportRuleLine">Ογκομετρικό /5000</div>
@@ -566,10 +566,11 @@
               <div>
                 <label>Extra χρεώσεις</label>
                 <div class="seg" style="grid-template-columns:1fr;">
-                  <button id="pickupBtn" type="button">Παραλαβή (+€5)</button>
+                  <button id="pickupBtn" type="button">Παραλαβή</button>
                 </div>
               </div>
             </div>
+
 
 
             <div class="spacer12"></div>
@@ -925,6 +926,17 @@
             <div class="spacer12"></div>
 
             <div>
+              <label>Προεπιλογή πληρωτή</label>
+              <div class="seg">
+                <button id="adminDefaultPayerSenderBtn" type="button" class="active">Αποστολέας</button>
+                <button id="adminDefaultPayerReceiverBtn" type="button">Παραλήπτης</button>
+              </div>
+              <div class="sub" style="margin-top:6px;">Αυτό θα φορτώνει προεπιλεγμένα στο tab Υπολογισμός όταν διαλέγεις τον πελάτη.</div>
+            </div>
+
+            <div class="spacer12"></div>
+
+            <div>
               <label>Είδος χρέωσης</label>
               <div class="seg3">
                 <button id="adminTypeDefault" type="button" class="active">Default</button>
@@ -1058,6 +1070,7 @@
                     <th>Πλοίο</th>
                     <th>Σημειώσεις</th>
                     <th>Flags</th>
+                    <th>Πληρωτής</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -1503,20 +1516,23 @@
     }
     document.querySelectorAll(".tabBtn").forEach(btn => btn.addEventListener("click", () => setTab(btn.dataset.tab)));
 
-    let adminChargeType = "default";
+    let adminChargeType = null;
     let adminActive = true;
+    let adminDefaultPayer = null;
     let editingΣυμφωνίαerId = null;
 
-    let payer = "sender";
-    let transport = "air";
+    let payer = null;
+    let lastCalcCustomerId = null;
+    let payerManualOverride = false;
+    let transport = null;
     let addPickup = false;
     let calcChargeOverride = null;
     let editingRecordId = null;
 
-    function getVatRate(){ return payer === "sender" ? VAT_SENDER : VAT_RECEIVER; }
-    function getPayerLabel(){ return payer === "sender" ? "Αποστολέας" : "Παραλήπτης"; }
-    function getTransportLabel(){ return transport === "air" ? "Αεροπορικό" : "Πλοίο"; }
-    function getVolDivisorByTransport(){ return getDefaultModeSettings(transport).volDivisor; }
+    function getVatRate(){ return payer === "receiver" ? VAT_RECEIVER : VAT_SENDER; }
+    function getPayerLabel(){ return payer === "sender" ? "Αποστολέας" : (payer === "receiver" ? "Παραλήπτης" : "—"); }
+    function getTransportLabel(){ return transport === "air" ? "Αεροπορικό" : (transport === "sea" ? "Πλοίο" : "—"); }
+    function getVolDivisorByTransport(){ return getDefaultModeSettings(transport === "air" ? "air" : "sea").volDivisor; }
     function getPickupFee(chargeType = null, customer = null){
       if (customer?.chargeType === "custom_tiers"){
         const customPickup = transport === "air" ? parseNumLoose(customer.customPickupFeeAir) : parseNumLoose(customer.customPickupFeeSea);
@@ -1527,8 +1543,12 @@
     }
     function refreshDefaultUiTexts(){
       const defaults = loadDefaultSettings();
-      el("pickupBtn").textContent = `Παραλαβή (λοιπά €${nf2.format(defaults.pickupFee)} • κυβικό €${nf2.format(defaults.pickupFeeCubic)})`;
-      el("transportRuleLine").textContent = transport === "air" ? `Ογκομετρικό /${defaults.air.volDivisor}` : `Ογκομετρικό /${defaults.sea.volDivisor}`;
+      el("pickupBtn").textContent = `Παραλαβή`;
+      if (!transport){
+        el("transportRuleLine").textContent = "Διάλεξε μεταφορά";
+      } else {
+        el("transportRuleLine").textContent = transport === "air" ? `Ογκομετρικό /${defaults.air.volDivisor}` : `Ογκομετρικό /${defaults.sea.volDivisor}`;
+      }
       el("defaultRatesFooter").innerHTML =
         `Αεροπορικό: ογκομετρικό /${defaults.air.volDivisor} • extra kg €${nf2.format(defaults.air.extraPerKg)} • Παραλαβή λοιπά €${nf2.format(defaults.pickupFee)}<br>` +
         `Πλοίο: ογκομετρικό /${defaults.sea.volDivisor} • extra kg €${nf2.format(defaults.sea.extraPerKg)} • Παραλαβή κυβικό €${nf2.format(defaults.pickupFeeCubic)} / λοιπά €${nf2.format(defaults.pickupFee)}<br>` +
@@ -1643,22 +1663,42 @@
     }
 
     function setAdminChargeType(type){
-      adminChargeType = type;
+      adminChargeType = type || null;
       el("adminTypeDefault").classList.toggle("active", type === "default");
       el("adminTypeCustom").classList.toggle("active", type === "custom_tiers");
       el("adminTypeCubic").classList.toggle("active", type === "cubic");
       el("adminTypePiece").classList.toggle("active", type === "piece");
 
-      el("adminDefaultBox").classList.remove("hidden");
-      el("adminΣυμφωνίαBox").classList.remove("hidden");
-      el("adminCubicBox").classList.remove("hidden");
-      el("adminPieceBox").classList.remove("hidden");
+      el("adminDefaultBox").classList.toggle("hidden", type !== "default");
+      el("adminCustomBox").classList.toggle("hidden", type !== "custom_tiers");
+      el("adminCubicBox").classList.toggle("hidden", type !== "cubic");
+      el("adminPieceBox").classList.toggle("hidden", type !== "piece");
     }
 
     function setAdminActive(on){
       adminActive = !!on;
       el("adminActiveBtn").classList.toggle("active", adminActive);
       el("adminActiveBtn").textContent = adminActive ? "Ενεργός πελάτης" : "Ανενεργός πελάτης";
+    }
+
+    function setAdminDefaultPayer(next){
+      adminDefaultPayer = next === "receiver" ? "receiver" : (next === "sender" ? "sender" : null);
+      el("adminDefaultPayerSenderBtn").classList.toggle("active", adminDefaultPayer === "sender");
+      el("adminDefaultPayerReceiverBtn").classList.toggle("active", adminDefaultPayer === "receiver");
+    }
+
+    function setAdminDefaultPayer(next){
+      adminDefaultPayer = next === "receiver" ? "receiver" : "sender";
+      el("adminDefaultPayerSenderBtn").classList.toggle("active", adminDefaultPayer === "sender");
+      el("adminDefaultPayerReceiverBtn").classList.toggle("active", adminDefaultPayer === "receiver");
+    }
+
+    function getAdminDefaultPayerValue(){
+      const senderBtn = el("adminDefaultPayerSenderBtn");
+      const receiverBtn = el("adminDefaultPayerReceiverBtn");
+      if (receiverBtn && receiverBtn.classList.contains("active")) return "receiver";
+      if (senderBtn && senderBtn.classList.contains("active")) return "sender";
+      return null;
     }
 
     function renderAdminΣυμφωνίαRatesInputs(bodyId, tiers, values = {}){
@@ -1707,8 +1747,9 @@
       renderAdminΣυμφωνίαRatesInputs("adminΣυμφωνίαRatesAirBody", DEFAULT_AIR_TIERS, {});
       renderAdminΣυμφωνίαRatesInputs("adminΣυμφωνίαRatesSeaBody", DEFAULT_SEA_TIERS, {});
 
-      setAdminChargeType("default");
+      setAdminChargeType(null);
       setAdminActive(true);
+      setAdminDefaultPayer(null);
       el("adminModeLabel").textContent = "Mode: Νέος πελάτης";
       el("cancelAdminEditBtn").style.display = "none";
     }
@@ -1719,6 +1760,8 @@
 
       if (!code) return "Βάλε κωδικό πελάτη.";
       if (!name) return "Βάλε όνομα πελάτη.";
+      if (!adminDefaultPayer) return "Διάλεξε ποιος πληρώνει.";
+      if (!adminChargeType) return "Διάλεξε είδος χρέωσης.";
 
       const cubicAirRaw = el("adminCubicRateAir").value.trim();
       const cubicSeaRaw = el("adminCubicRateSea").value.trim();
@@ -1794,6 +1837,7 @@
         over50BaseSea: el("adminOver50BaseSea").value.trim() === "" ? null : parseNumLoose(el("adminOver50BaseSea").value.trim()),
         over50PerSea: el("adminOver50PerSea").value.trim() === "" ? FALLBACK_SEA_EXTRA_PER_KG : parseNumLoose(el("adminOver50PerSea").value.trim()),
         volDivisorSea: el("adminVolDivisorSea").value.trim() === "" ? FALLBACK_SEA_VOL_DIVISOR : parseNumLoose(el("adminVolDivisorSea").value.trim()),
+        defaultPayer: getAdminDefaultPayerValue(),
         updatedAt: nowISO()
       };
 
@@ -1848,6 +1892,7 @@
       renderAdminΣυμφωνίαRatesInputs("adminΣυμφωνίαRatesSeaBody", DEFAULT_SEA_TIERS, c.customRatesSea || {});
       setAdminChargeType(c.primaryChargeType || c.chargeType || "default");
       setAdminActive(c.active !== false);
+      setAdminDefaultPayer((c.defaultPayer || "sender") === "receiver" ? "receiver" : "sender");
 
       el("adminModeLabel").textContent = "Mode: Edit πελάτη";
       el("cancelAdminEditBtn").style.display = "inline-flex";
@@ -1879,7 +1924,7 @@
       });
 
       if (!rows.length){
-        el("adminΣυμφωνίαersBody").innerHTML = `<tr><td colspan="8" class="muted">Δεν υπάρχουν πελάτες για αυτά τα φίλτρα.</td></tr>`;
+        el("adminΣυμφωνίαersBody").innerHTML = `<tr><td colspan="9" class="muted">Δεν υπάρχουν πελάτες για αυτά τα φίλτρα.</td></tr>`;
         return;
       }
 
@@ -1892,6 +1937,7 @@
           <td>${esc(customerModePreview(c,"sea"))}</td>
           <td>${esc(c.notes || "—")}</td>
           <td>${c.active !== false ? `<span class="pill ok">Ενεργός</span>` : `<span class="pill bad">Ανενεργός</span>`}</td>
+          <td>${(c.defaultPayer || "sender") === "receiver" ? "Παραλήπτης" : "Αποστολέας"}</td>
           <td>
             <div class="miniActions">
               <button class="miniBtn blue" type="button" onclick="window.__editΣυμφωνίαer('${c.id}')">Edit</button>
@@ -2174,6 +2220,8 @@
     function computeCalculation(){
       const customerText = el("calcΣυμφωνίαer").value.trim();
       if (!customerText) return { ok:false, err:"Βάλε πελάτη." };
+      if (!transport) return { ok:false, err:"Διάλεξε τρόπο μεταφοράς." };
+      if (!payer) return { ok:false, err:"Διάλεξε ποιος πληρώνει." };
 
       const customer = getSelectedΣυμφωνίαer();
       const primaryChargeType = getPrimaryChargeType(customer);
@@ -2369,6 +2417,16 @@
 
 
     function setCalcChargeModeButtons(customer){
+      if (!customer){
+        el("calcTypeDefaultBtn").classList.remove("active");
+        el("calcTypeCubicBtn").classList.remove("active");
+        el("calcTypePieceBtn").classList.remove("active");
+        el("calcTypeCustomBtn").classList.remove("active");
+        el("calcTypeResetBtn").classList.remove("active");
+        el("calcChargeModeHint").textContent = "Διάλεξε πελάτη για να εμφανιστεί το είδος χρέωσης.";
+        return;
+      }
+
       const primary = getPrimaryChargeType(customer);
       const resolved = getResolvedChargeType(customer);
 
@@ -2379,9 +2437,7 @@
       el("calcTypeResetBtn").classList.toggle("active", calcChargeOverride == null);
 
       const sourceLabel = calcChargeOverride == null ? `Προεπιλογή πελάτη: ${chargeTypeLabel(primary)}` : `Προσωρινή επιλογή: ${chargeTypeLabel(resolved)}`;
-      el("calcChargeModeHint").textContent = customer
-        ? `${sourceLabel}. Μπορείς να το αλλάξεις μόνο για αυτόν τον υπολογισμό.`
-        : "Χωρίς πελάτη επιλεγμένο, το πρόγραμμα χρησιμοποιεί Default.";
+      el("calcChargeModeHint").textContent = `${sourceLabel}. Μπορείς να το αλλάξεις μόνο για αυτόν τον υπολογισμό.`;
     }
 
     function setCalcChargeOverride(type){
@@ -2394,6 +2450,17 @@
       const primaryChargeType = getPrimaryChargeType(customer);
       const chargeType = getResolvedChargeType(customer);
       setCalcChargeModeButtons(customer);
+
+      const selectedCustomerId = customer?.id || null;
+      if (selectedCustomerId !== lastCalcCustomerId){
+        if (!payerManualOverride){
+          payer = customer ? ((customer.defaultPayer || "sender") === "receiver" ? "receiver" : "sender") : null;
+        }
+        el("payerSenderBtn").classList.toggle("active", payer === "sender");
+        el("payerReceiverBtn").classList.toggle("active", payer === "receiver");
+        lastCalcCustomerId = selectedCustomerId;
+        payerManualOverride = false;
+      }
 
       if (customer){
         const displayName = customerDisplayName(customer);
@@ -2410,7 +2477,8 @@
         el("manualCubicWrap").classList.add("hidden");
         el("manualPieceWrap").classList.add("hidden");
       } else {
-        el("customerChargeTypeLine").textContent = `Πελάτης: ${customerDisplayName(customer)} • Κύριος τρόπος: ${chargeTypeLabel(primaryChargeType)}${calcChargeOverride ? ` • Προσωρινά: ${chargeTypeLabel(chargeType)}` : ''}`;
+        const defaultPayerLabel = customer.defaultPayer === "receiver" ? "Παραλήπτης" : "Αποστολέας";
+        el("customerChargeTypeLine").textContent = `Πελάτης: ${customerDisplayName(customer)} • Κύριος τρόπος: ${chargeTypeLabel(primaryChargeType)}${calcChargeOverride ? ` • Προσωρινά: ${chargeTypeLabel(chargeType)}` : ""} • Προεπιλογή: ${defaultPayerLabel}`;
         el("customerRateDetails").innerHTML = `${chargeTypePill(chargeType)} <span class="sub">Αεροπορικό: ${esc(customerModePreview(customer,"air"))} • Πλοίο: ${esc(customerModePreview(customer,"sea"))}</span>`;
         el("quickInfoLine1").textContent = `Μεταφορά: ${getTransportLabel()} • Πληρωτής: ${getPayerLabel()}`;
         el("quickInfoLine2").textContent = renderΣυμφωνίαerRatesPreview(customer, chargeType);
@@ -2440,14 +2508,16 @@
     function resetCalcForm(){
       editingRecordId = null;
       el("calcΣυμφωνίαer").value = "";
-      payer = "sender";
-      transport = "air";
+      lastCalcCustomerId = null;
+      payerManualOverride = false;
+      payer = null;
+      transport = null;
       addPickup = false;
       calcChargeOverride = null;
 
-      el("payerSenderBtn").classList.add("active");
+      el("payerSenderBtn").classList.remove("active");
       el("payerReceiverBtn").classList.remove("active");
-      el("transportAirBtn").classList.add("active");
+      el("transportAirBtn").classList.remove("active");
       el("transportSeaBtn").classList.remove("active");
       el("pickupBtn").classList.remove("active");
       refreshDefaultUiTexts();
@@ -2769,6 +2839,10 @@
     el("adminTypeCubic").addEventListener("click", () => setAdminChargeType("cubic"));
     el("adminTypePiece").addEventListener("click", () => setAdminChargeType("piece"));
     el("adminActiveBtn").addEventListener("click", () => setAdminActive(!adminActive));
+    el("adminDefaultPayerSenderBtn").addEventListener("click", () => setAdminDefaultPayer("sender"));
+    el("adminDefaultPayerReceiverBtn").addEventListener("click", () => setAdminDefaultPayer("receiver"));
+    el("adminDefaultPayerSenderBtn").addEventListener("click", () => setAdminDefaultPayer("sender"));
+    el("adminDefaultPayerReceiverBtn").addEventListener("click", () => setAdminDefaultPayer("receiver"));
 
     el("saveΣυμφωνίαerBtn").addEventListener("click", saveΣυμφωνίαerFromAdmin);
     el("deleteΣυμφωνίαerBtn").addEventListener("click", () => {
@@ -2826,9 +2900,14 @@
     el("calcΣυμφωνίαer").addEventListener("input", () => { calcChargeOverride = null; syncCalcΣυμφωνίαerInfo(); });
         function handleCalcCustomerInput(){
       calcChargeOverride = null;
-      const customer = getSelectedCustomer();
+      payerManualOverride = false;
+      lastCalcCustomerId = null;
+      const customer = getSelectedΣυμφωνίαer();
       if (customer){
         el("calcCustomer").value = customerDisplayName(customer);
+      } else {
+        payer = null;
+        lastCalcCustomerId = null;
       }
       syncCalcΣυμφωνίαerInfo();
     }
@@ -2845,12 +2924,14 @@
     el("calcTypeResetBtn").addEventListener("click", () => { calcChargeOverride = null; syncCalcΣυμφωνίαerInfo(); });
 
     el("payerSenderBtn").addEventListener("click", () => {
+      payerManualOverride = true;
       payer = "sender";
       el("payerSenderBtn").classList.add("active");
       el("payerReceiverBtn").classList.remove("active");
       syncCalcΣυμφωνίαerInfo();
     });
     el("payerReceiverBtn").addEventListener("click", () => {
+      payerManualOverride = true;
       payer = "receiver";
       el("payerSenderBtn").classList.remove("active");
       el("payerReceiverBtn").classList.add("active");
