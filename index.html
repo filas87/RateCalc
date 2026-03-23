@@ -498,12 +498,8 @@
       background:rgba(8,12,24,.94);backdrop-filter:blur(10px);
     }
     .pickerBody{padding:16px}
-    .pickerSearch{
-      margin-bottom:12px;
-    }
-    .pickerList{
-      display:grid;gap:10px;
-    }
+    .pickerSearch{margin-bottom:12px}
+    .pickerList{display:grid;gap:10px}
     .pickerItem{
       width:100%;
       border:1px solid rgba(255,255,255,.12);
@@ -520,12 +516,8 @@
       border-color:rgba(102,140,255,.45);
       background:rgba(102,140,255,.09);
     }
-    .pickerItem .title{
-      font-size:14px;font-weight:900;
-    }
-    .pickerItem .sub{
-      margin-top:4px;
-    }
+    .pickerItem .title{font-size:14px;font-weight:900}
+    .pickerItem .sub{margin-top:4px}
 
   </style>
 </head>
@@ -589,6 +581,7 @@
                 <div class="field">
                   <div class="icon">👤</div>
                   <input id="calcΣυμφωνίαer" list="customersList" placeholder="π.χ. HM001 ή H&M" autocomplete="off" />
+                  <button id="openCustomerPickerBtn" type="button" class="miniBtn" style="padding:6px 10px;">👤</button>
                   <div class="suffix">saved</div>
                 </div>
                 <datalist id="customersList"></datalist>
@@ -2778,7 +2771,7 @@
         return `
           <tr title="${esc(r.edited ? `EditedAt: ${r.editedAt || ""}` : "")}">
             <td class="mono">${esc(r.createdAt || "")}</td>
-            <td>${esc(r.customerCode || r.customerName || r.customerText || "")}</td>
+            <td>${esc((r.customerCode && r.customerName) ? `${r.customerCode} • ${r.customerName}` : (r.customerCode || r.customerName || r.customerText || ""))}</td>
             <td>${r.transport === "air" ? "Αεροπορικό" : "Πλοίο"}</td>
             <td>${r.payer === "sender" ? "Αποστολέας" : "Παραλήπτης"}</td>
             <td>${chargeTypeLabel(r.chargeType)}</td>
@@ -2910,6 +2903,7 @@
       el("customerPickerModal").classList.add("show");
       el("customerPickerModal").setAttribute("aria-hidden", "false");
       el("customerPickerSearch").value = "";
+      renderCustomerPickerList();
       setTimeout(() => el("customerPickerSearch").focus(), 50);
     }
 
@@ -2945,12 +2939,23 @@
           const id = btn.getAttribute("data-customer-id");
           const customer = loadΣυμφωνίαers().find(x => String(x.id) === String(id));
           if (!customer) return;
-          el("calcCustomer").value = customerDisplayName(customer);
+
+          el("calcΣυμφωνίαer").value = customerDisplayName(customer);
+
+          calcChargeOverride = null;
+          payerManualOverride = false;
+          lastCalcCustomerId = null;
+
+          payer = (customer.defaultPayer || "sender") === "receiver" ? "receiver" : "sender";
+          el("payerSenderBtn").classList.toggle("active", payer === "sender");
+          el("payerReceiverBtn").classList.toggle("active", payer === "receiver");
+
           closeCustomerPicker();
-          handleCalcCustomerInput();
+          syncCalcΣυμφωνίαerInfo();
         });
       });
     }
+
 
     window.__editΣυμφωνίαer = startEditΣυμφωνίαer;
     window.__deleteΣυμφωνίαer = deleteΣυμφωνίαer;
@@ -3083,10 +3088,10 @@
       resetCalcForm();
       showToast("calcToast", "Η φόρμα καθαρίστηκε.", "ok");
     });
-    el("openCustomerPickerBtn").addEventListener("click", openCustomerPicker);
-    el("closeCustomerPickerBtn").addEventListener("click", closeCustomerPicker);
-    el("customerPickerSearch").addEventListener("input", renderCustomerPickerList);
-    el("customerPickerModal").addEventListener("click", (e) => {
+    if (el("openCustomerPickerBtn")) el("openCustomerPickerBtn").addEventListener("click", openCustomerPicker);
+    if (el("closeCustomerPickerBtn")) el("closeCustomerPickerBtn").addEventListener("click", closeCustomerPicker);
+    if (el("customerPickerSearch")) el("customerPickerSearch").addEventListener("input", renderCustomerPickerList);
+    if (el("customerPickerModal")) el("customerPickerModal").addEventListener("click", (e) => {
       if (e.target === el("customerPickerModal")) closeCustomerPicker();
     });
 
